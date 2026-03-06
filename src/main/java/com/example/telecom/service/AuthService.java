@@ -47,7 +47,6 @@ public class AuthService {
             throw new RuntimeException("Email déjà utilisé");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getEmail());

@@ -10,4 +10,5 @@ public class UpdateUserRequest {
     private String email;
     private String role;
     private String password;
+    private String actif;
 }

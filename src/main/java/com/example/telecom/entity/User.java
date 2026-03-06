@@ -20,6 +20,8 @@ public class User {
     private String password;
     private String role;
 
+    private boolean actif = true;
+
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
 }

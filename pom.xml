@@ -12,7 +12,7 @@
 	<artifactId>telecom</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>telecom</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Portail de Gestion Clientèle et Promotions - Opérateur Télécom</description>
 	<url/>
 	<licenses>
 		<license/>

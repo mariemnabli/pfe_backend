@@ -11,6 +11,7 @@ public class UserResponse {
     private String username;
     private String email;
     private String role;
+    private String actif;
 
     public static UserResponse fromEntity(User user) {
         UserResponse res = new UserResponse();
@@ -18,6 +19,7 @@ public class UserResponse {
         res.setUsername(user.getUsername());
         res.setEmail(user.getEmail());
         res.setRole(user.getRole());
+        res.setActif(String.valueOf(user.isActif()));
         return res;
     }
 }

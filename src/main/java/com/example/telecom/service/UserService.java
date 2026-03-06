@@ -39,7 +39,6 @@ public class UserService {
     // ─── SAVE (register) ─────────────────────────────────────
     public User save(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
         return userRepository.save(user);
     }
 
@@ -56,6 +55,9 @@ public class UserService {
         }
         if (request.getRole() != null && !request.getRole().isBlank()) {
             user.setRole(request.getRole());
+        }
+        if (request.getActif() != null && !request.getActif().isBlank()) {
+            user.setActif(Boolean.parseBoolean(request.getActif()));
         }
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));

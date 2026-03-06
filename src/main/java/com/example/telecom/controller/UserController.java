@@ -19,31 +19,31 @@ public class UserController {
         this.userService = userService;
     }
 
-    // GET /api/users  →  ADMIN seulement
+    // GET /api/users  →  DSI seulement
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DSI')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // GET /api/users/{id}  →  ADMIN ou l'utilisateur lui-même
+    // GET /api/users/{id}  →  DSI ou l'utilisateur lui-même
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isOwner(authentication, #id)")
+    @PreAuthorize("hasRole('DSI') or @userSecurity.isOwner(authentication, #id)")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     // PUT /api/users/{id}
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @userSecurity.isOwner(authentication, #id)")
+    @PreAuthorize("hasRole('DSI') or @userSecurity.isOwner(authentication, #id)")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,
                                                    @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
-    // DELETE /api/users/{id}  →  ADMIN seulement
+    // DELETE /api/users/{id}  →  DSI seulement
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DSI')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();

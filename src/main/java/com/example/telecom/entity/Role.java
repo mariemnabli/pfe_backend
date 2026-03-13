@@ -1,7 +1,7 @@
 package com.example.telecom.entity;
 public enum Role {
-    EMPLOYE,
-    EXPLOITATION,
+    METIER,
+    EXPLOIT,
     DSI,
     VENTE
 }

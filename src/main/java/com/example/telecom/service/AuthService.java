@@ -38,7 +38,7 @@ public class AuthService {
         }
 
         String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token);
+        return new AuthResponse(token, user.getEmail(), user.getRole());
     }
 
     // ─── REGISTER ────────────────────────────────────────────
@@ -50,7 +50,7 @@ public class AuthService {
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token);
+        return new AuthResponse(token, user.getEmail(), user.getRole());
     }
 
     // ─── FORGOT PASSWORD ─────────────────────────────────────
@@ -63,7 +63,7 @@ public class AuthService {
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30));
         userRepository.save(user);
 
-        emailService.sendResetPasswordEmail(user.getEmail(), token);
+        emailService.envoyerResetPassword(user.getEmail(), token);
     }
 
     // ─── RESET PASSWORD ──────────────────────────────────────

@@ -2,6 +2,7 @@ package com.example.telecom.service;
 
 import com.example.telecom.dto.UpdateUserRequest;
 import com.example.telecom.dto.UserResponse;
+import com.example.telecom.entity.Role;
 import com.example.telecom.entity.User;
 import com.example.telecom.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -54,7 +55,7 @@ public class UserService {
             user.setEmail(request.getEmail());
         }
         if (request.getRole() != null && !request.getRole().isBlank()) {
-            user.setRole(request.getRole());
+            user.setRole(Role.valueOf(request.getRole()));
         }
         if (request.getActif() != null && !request.getActif().isBlank()) {
             user.setActif(Boolean.parseBoolean(request.getActif()));

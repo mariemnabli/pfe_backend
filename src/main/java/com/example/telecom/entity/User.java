@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Entity
 @Table(name = "users")
@@ -18,9 +19,12 @@ public class User {
     private String username;
     private String email;
     private String password;
-    private String role;
 
-    private boolean actif = true;
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
+    private boolean actif = false;
+    private Date firstTimeConnexion;
 
     private String resetToken;
     private LocalDateTime resetTokenExpiry;

@@ -18,7 +18,7 @@ public class UserResponse {
         res.setId(user.getId());
         res.setUsername(user.getUsername());
         res.setEmail(user.getEmail());
-        res.setRole(user.getRole());
+        res.setRole(String.valueOf(user.getRole()));
         res.setActif(String.valueOf(user.isActif()));
         return res;
     }

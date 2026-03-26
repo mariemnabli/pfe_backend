@@ -31,5 +31,4 @@ public class User {
 
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
-    private boolean enabled = true; // utilisateur actif ou non
 }

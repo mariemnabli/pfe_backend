@@ -34,9 +34,7 @@ public class AuthService {
         User user = userRepository.findUserByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-        if (!user.isActif()) {
-            throw new RuntimeException("Compte désactivé. Contactez votre administrateur.");
-        }
+
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Mot de passe incorrect");

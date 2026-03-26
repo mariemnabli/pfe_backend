@@ -13,12 +13,13 @@ public class Contrat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private LocalDate dateDebut;
     private LocalDate dateFin;
 
     @Enumerated(EnumType.STRING)
     private StatutContrat statut = StatutContrat.ACTIF;
+
+    private Number directoryNumber;
 
     @ManyToOne
     @JoinColumn(name = "client_id")
@@ -35,4 +36,6 @@ public class Contrat {
     public enum StatutContrat {
         ACTIF, RESILIE, SUSPENDU
     }
+
+
 }

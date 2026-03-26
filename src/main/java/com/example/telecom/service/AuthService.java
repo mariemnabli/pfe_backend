@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -33,8 +34,26 @@ public class AuthService {
         User user = userRepository.findUserByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
+        if (!user.isActif()) {
+            throw new RuntimeException("Compte désactivé. Contactez votre administrateur.");
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Mot de passe incorrect");
+        }
+
+        // ── Première connexion ─────────────────────────────────
+        // premiereConnexion = false  →  c'est sa première fois
+        if (!user.isPremiereConnexion()) {
+            user.setPremiereConnexion(true);           // marquer comme connecté
+            user.setFirstTimeConnexion(new Date());    // enregistrer la date
+            userRepository.save(user);
+
+            // Envoyer notification de première connexion
+            emailService.envoyerNotificationPremiereConnexion(
+                    user.getEmail(),
+                    user.getUsername()
+            );
         }
 
         String token = jwtUtil.generateToken(user.getEmail());

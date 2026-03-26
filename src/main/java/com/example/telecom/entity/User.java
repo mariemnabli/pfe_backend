@@ -24,8 +24,12 @@ public class User {
     private Role role;
 
     private boolean actif = false;
+
+    private boolean premiereConnexion = false;
+
     private Date firstTimeConnexion;
 
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
+    private boolean enabled = true; // utilisateur actif ou non
 }

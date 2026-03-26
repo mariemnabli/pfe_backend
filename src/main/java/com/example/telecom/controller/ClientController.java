@@ -142,6 +142,7 @@ public class ClientController {
         String nomFichier = UUID.randomUUID() + "_" + file.getOriginalFilename();
         Path chemin = Paths.get(UPLOAD_DIR + nomFichier);
         Files.write(chemin, file.getBytes());
-        return chemin.toString();
+        // ✅ retourner uniquement le chemin relatif avec forward slashes
+        return "documents/" + nomFichier;
     }
 }

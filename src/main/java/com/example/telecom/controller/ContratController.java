@@ -44,4 +44,9 @@ public class ContratController {
     public ResponseEntity<List<ContratDTO>> getByClient(@PathVariable Long clientId) {
         return ResponseEntity.ok(contratService.getContratsByClient(clientId));
     }
+    // Ajouter une offre à un contrat existant
+    @PutMapping("/{id}/add-offre/{offreId}")
+    public ResponseEntity<ContratDTO> addOffre(@PathVariable Long id, @PathVariable Long offreId) {
+        return ResponseEntity.ok(contratService.ajouterOffreAuContrat(id, offreId));
+    }
 }

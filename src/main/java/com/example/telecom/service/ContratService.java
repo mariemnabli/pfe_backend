@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,14 +20,19 @@ public class ContratService {
 
     private final ContratRepository contratRepository;
     private final ClientRepository clientRepository;
-    private final OffreRepository offreRepository;
-
     // -------------------- Création --------------------
+
+    private final OffreRepository offreRepository;
     public ContratDTO creerContrat(ContratDTO dto) {
         Client client = clientRepository.findById(dto.getClientId())
                 .orElseThrow(() -> new RuntimeException("Client introuvable : " + dto.getClientId()));
         Offre offre = offreRepository.findById(dto.getOffreId())
                 .orElseThrow(() -> new RuntimeException("Offre introuvable : " + dto.getOffreId()));
+
+        // ✅ Générer un numéro unique si non fourni
+        Number directoryNumber = dto.getDirectoryNumber() != null
+                ? dto.getDirectoryNumber()
+                : genererDirectoryNumber();
 
         Contrat contrat = Contrat.builder()
                 .dateDebut(dto.getDateDebut())
@@ -34,10 +40,21 @@ public class ContratService {
                 .statut(Contrat.StatutContrat.ACTIF)
                 .client(client)
                 .offre(offre)
-                .directoryNumber(dto.getDirectoryNumber())
+                .directoryNumber(directoryNumber)
                 .build();
 
         return toDTO(contratRepository.save(contrat));
+    }
+
+    // ✅ Génère un numéro tunisien aléatoire : 216 + 2 chiffres opérateur + 7 chiffres
+    private Number genererDirectoryNumber() {
+        // Préfixes opérateurs tunisiens : 20-29, 50-59, 90-99
+        int[] prefixes = {20, 21, 22, 23, 25, 50, 52, 53, 55, 58, 90, 92, 94, 97, 98};
+        Random random = new Random();
+        int prefix = prefixes[random.nextInt(prefixes.length)];
+        int suffix = 1000000 + random.nextInt(9000000); // 7 chiffres
+        // Format : 216XXXXXXXXX (sans le +)
+        return Long.parseLong("216" + prefix + suffix);
     }
 
     // -------------------- Modification --------------------

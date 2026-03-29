@@ -10,7 +10,7 @@ public class UserDTO {
     private String username;
     private String email;
     private Role role;
-    private boolean actif;
+    private boolean enabled;
     private boolean premiereConnexion;
     private Date firstTimeConnexion;
 }

@@ -19,7 +19,7 @@ public class UserResponse {
         res.setUsername(user.getUsername());
         res.setEmail(user.getEmail());
         res.setRole(String.valueOf(user.getRole()));
-        res.setActif(String.valueOf(user.isActif()));
+        res.setActif(String.valueOf(user.isEnabled()));
         return res;
     }
 }

@@ -4,6 +4,7 @@ import com.example.telecom.dto.*;
 import com.example.telecom.entity.User;
 import com.example.telecom.repository.UserRepository;
 import com.example.telecom.security.JwtUtil;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -12,50 +13,52 @@ import java.util.Date;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
-    private final EmailService emailService;
-
-    public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil,
-                       EmailService emailService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-        this.emailService = emailService;
-    }
+    private final UserRepository      userRepository;
+    private final PasswordEncoder     passwordEncoder;
+    private final JwtUtil             jwtUtil;
+    private final EmailService        emailService;
+    private final RefreshTokenService refreshTokenService;
 
     // ─── LOGIN ───────────────────────────────────────────────
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findUserByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
 
-
-
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Mot de passe incorrect");
         }
 
-        // ── Première connexion ─────────────────────────────────
-        // premiereConnexion = false  →  c'est sa première fois
+        // Première connexion
         if (!user.isPremiereConnexion()) {
-            user.setPremiereConnexion(true);           // marquer comme connecté
-            user.setFirstTimeConnexion(new Date());    // enregistrer la date
+            user.setPremiereConnexion(true);
+            user.setEnabled(true);
+            user.setFirstTimeConnexion(new Date());
             userRepository.save(user);
-
-            // Envoyer notification de première connexion
-            emailService.envoyerNotificationPremiereConnexion(
-                    user.getEmail(),
-                    user.getUsername()
-            );
+            emailService.envoyerNotificationPremiereConnexion(user.getEmail(), user.getUsername());
         }
 
-        String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getEmail(), user.getRole());
+        String accessToken  = jwtUtil.generateToken(user);
+        String refreshToken = refreshTokenService.generer(user); // ✅
+
+        return new AuthResponse(accessToken, refreshToken, user.getEmail(), user.getRole());
+    }
+
+    // ─── REFRESH ─────────────────────────────────────────────
+    public AuthResponse refresh(String refreshToken) {
+        User user = refreshTokenService.valider(refreshToken);
+
+        String newAccessToken  = jwtUtil.generateToken(user);
+        String newRefreshToken = refreshTokenService.generer(user); // rotation
+
+        return new AuthResponse(newAccessToken, newRefreshToken, user.getEmail(), user.getRole());
+    }
+
+    // ─── LOGOUT ──────────────────────────────────────────────
+    public void logout(String refreshToken) {
+        refreshTokenService.revoquer(refreshToken);
     }
 
     // ─── REGISTER ────────────────────────────────────────────
@@ -66,8 +69,10 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
 
-        String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getEmail(), user.getRole());
+        String accessToken  = jwtUtil.generateToken(user);
+        String refreshToken = refreshTokenService.generer(user); // ✅
+
+        return new AuthResponse(accessToken, refreshToken, user.getEmail(), user.getRole());
     }
 
     // ─── FORGOT PASSWORD ─────────────────────────────────────

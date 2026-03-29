@@ -104,7 +104,21 @@ public class PromotionService {
                 .statut(p.getStatut())
                 .regleEligibilite(p.getRegleEligibilite())
                 .ancienneteMinimale(p.getAncienneteMinimale())
-                .createurId(p.getCreateur() != null ? p.getCreateur().getId() : null)
+                .createurId(p.getCreateur()   != null ? p.getCreateur().getId()   : null)
+                .validateurId(p.getValidateur() != null ? p.getValidateur().getId() : null)
+                // ✅ objets enrichis
+                .createur(p.getCreateur() != null ? PromotionDTO.UserSummary.builder()
+                        .id(p.getCreateur().getId())
+                        .username(p.getCreateur().getUsername())
+                        .email(p.getCreateur().getEmail())
+                        .role(p.getCreateur().getRole().name())
+                        .build() : null)
+                .validateur(p.getValidateur() != null ? PromotionDTO.UserSummary.builder()
+                        .id(p.getValidateur().getId())
+                        .username(p.getValidateur().getUsername())
+                        .email(p.getValidateur().getEmail())
+                        .role(p.getValidateur().getRole().name())
+                        .build() : null)
                 .build();
     }
 }

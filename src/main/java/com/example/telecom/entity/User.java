@@ -3,6 +3,7 @@ package com.example.telecom.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Date;
 
@@ -23,12 +24,29 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    private boolean actif = false;
-
+    private boolean enabled = false;
     private boolean premiereConnexion = false;
-
     private Date firstTimeConnexion;
 
     private String resetToken;
     private LocalDateTime resetTokenExpiry;
+
+    // ✅ Refresh token — intégré directement dans User
+    @Column(unique = true)
+    private String refreshToken;
+
+    private Instant refreshTokenExpiry;
+
+    // ── Helpers ──────────────────────────────────────────────
+    public boolean hasValidRefreshToken(String token) {
+        return token != null
+                && token.equals(this.refreshToken)
+                && this.refreshTokenExpiry != null
+                && Instant.now().isBefore(this.refreshTokenExpiry);
+    }
+
+    public void clearRefreshToken() {
+        this.refreshToken = null;
+        this.refreshTokenExpiry = null;
+    }
 }

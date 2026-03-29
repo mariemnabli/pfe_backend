@@ -38,7 +38,7 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
         user.setPassword(passwordEncoder.encode(motDePasseBrut));
-        user.setActif(true);                  // compte actif dès la création
+        user.setEnabled(true);                  // compte actif dès la création
         user.setPremiereConnexion(false);      // pas encore connecté
 
         userRepository.save(user);
@@ -64,9 +64,9 @@ public class UserService {
     // ── DSI : Activer / Désactiver un compte ───────────────────
     public UserDTO toggleActif(Long id) {
         User user = getUser(id);
-        user.setActif(!user.isActif());
+        user.setEnabled(!user.isEnabled());
         userRepository.save(user);
-        emailService.envoyerNotificationCompte(user.getEmail(), user.getUsername(), user.isActif());
+        emailService.envoyerNotificationCompte(user.getEmail(), user.getUsername(), user.isEnabled());
         return toDTO(user);
     }
 
@@ -123,7 +123,7 @@ public class UserService {
                 .username(u.getUsername())
                 .email(u.getEmail())
                 .role(u.getRole())
-                .actif(u.isActif())
+                .enabled(u.isEnabled())
                 .premiereConnexion(u.isPremiereConnexion())
                 .firstTimeConnexion(u.getFirstTimeConnexion())
                 .build();

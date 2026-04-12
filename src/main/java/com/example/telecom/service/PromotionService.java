@@ -93,6 +93,38 @@ public class PromotionService {
                 .orElseThrow(() -> new RuntimeException("Promotion introuvable : " + id));
     }
 
+    // Métier: Modifier une promotion
+    public PromotionDTO modifierPromotion(Long id, PromotionDTO dto) {
+        Promotion promotion = getPromotion(id);
+
+        // ❌ Bloquer modification si déjà active (option métier)
+        if (promotion.getStatut() == Promotion.StatutPromotion.ACTIVE) {
+            throw new RuntimeException("Impossible de modifier une promotion active");
+        }
+
+        if (promotion.getStatut() == Promotion.StatutPromotion.VALIDEE) {
+            throw new RuntimeException("Modification interdite après validation");
+        }
+
+        if (dto.getDateFin().isBefore(dto.getDateDebut())) {
+            throw new RuntimeException("La date de fin doit être après la date de début");
+        }
+
+        // ✅ Mise à jour des champs
+        promotion.setNomPromotion(dto.getNomPromotion());
+        promotion.setTypeReduction(dto.getTypeReduction());
+        promotion.setValeurReduction(dto.getValeurReduction());
+        promotion.setDateDebut(dto.getDateDebut());
+        promotion.setDateFin(dto.getDateFin());
+        promotion.setRegleEligibilite(dto.getRegleEligibilite());
+        promotion.setAncienneteMinimale(dto.getAncienneteMinimale());
+
+        // ⚠️ option métier : remettre en attente après modification
+        promotion.setStatut(Promotion.StatutPromotion.EN_ATTENTE);
+
+        return toDTO(promotionRepository.save(promotion));
+    }
+
     private PromotionDTO toDTO(Promotion p) {
         return PromotionDTO.builder()
                 .id(p.getId())

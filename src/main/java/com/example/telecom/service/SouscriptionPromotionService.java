@@ -1,5 +1,6 @@
 package com.example.telecom.service;
 
+import com.example.telecom.dto.SouscriptionDTO;
 import com.example.telecom.entity.Contrat;
 import com.example.telecom.entity.Promotion;
 import com.example.telecom.entity.SouscriptionPromotion;
@@ -73,8 +74,19 @@ public class SouscriptionPromotionService {
         return true;
     }
 
-    public List<SouscriptionPromotion> getSouscriptionsByContrat(Long contratId) {
-        return souscriptionRepository.findByContratId(contratId);
+    public List<SouscriptionDTO> getSouscriptionsByContrat(Long contratId) {
+        return souscriptionRepository.findByContratId(contratId)
+                .stream()
+                .map(s -> SouscriptionDTO.builder()
+                        .id(s.getId())
+                        .dateSouscription(s.getDateSouscription())
+                        .statut(s.getStatut().name())
+                        .promotion(SouscriptionDTO.PromotionSummary.builder()
+                                .id(s.getPromotion().getId())
+                                .nomPromotion(s.getPromotion().getNomPromotion())
+                                .build())
+                        .build())
+                .toList();
     }
 
     public List<SouscriptionPromotion> getSouscriptionsByPromotion(Long promotionId) {

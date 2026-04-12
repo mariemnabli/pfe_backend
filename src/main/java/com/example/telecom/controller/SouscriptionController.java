@@ -1,5 +1,6 @@
 package com.example.telecom.controller;
 
+import com.example.telecom.dto.SouscriptionDTO;
 import com.example.telecom.entity.SouscriptionPromotion;
 import com.example.telecom.service.SouscriptionPromotionService;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,7 @@ public class SouscriptionController {
     }
 
     @GetMapping("/contrat/{contratId}")
-    public ResponseEntity<List<SouscriptionPromotion>> getByContrat(@PathVariable Long contratId) {
+    public ResponseEntity<List<SouscriptionDTO>> getByContrat(@PathVariable Long contratId) {
         return ResponseEntity.ok(souscriptionService.getSouscriptionsByContrat(contratId));
     }
 

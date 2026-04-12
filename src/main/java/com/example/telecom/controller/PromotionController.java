@@ -48,7 +48,12 @@ public class PromotionController {
     public ResponseEntity<PromotionDTO> suspendre(@PathVariable Long id) {
         return ResponseEntity.ok(promotionService.suspendrePromotion(id));
     }
-
+    // Métier: Modifier une promotion
+    @PutMapping("/{id}")
+    public ResponseEntity<PromotionDTO> modifier(@PathVariable Long id,
+                                                 @RequestBody PromotionDTO dto) {
+        return ResponseEntity.ok(promotionService.modifierPromotion(id, dto));
+    }
     @GetMapping
     public ResponseEntity<List<PromotionDTO>> getAll() {
         return ResponseEntity.ok(promotionService.getAll());

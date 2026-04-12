@@ -1,5 +1,6 @@
 package com.example.telecom.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -31,6 +32,7 @@ public class Contrat {
 
 
     @OneToMany(mappedBy = "contrat", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<SouscriptionPromotion> souscriptions;
 
     public enum StatutContrat {

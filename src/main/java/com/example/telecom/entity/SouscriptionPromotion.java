@@ -1,5 +1,6 @@
 package com.example.telecom.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -20,6 +21,7 @@ public class SouscriptionPromotion {
 
     @ManyToOne
     @JoinColumn(name = "contrat_id")
+    @JsonIgnore
     private Contrat contrat;
 
     @ManyToOne

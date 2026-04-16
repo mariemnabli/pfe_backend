@@ -14,6 +14,10 @@ public class Contrat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "contract_id", unique = true, updatable = false)
+    private String contractId;
+
     private LocalDate dateDebut;
     private LocalDate dateFin;
 

@@ -14,6 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ContratDTO {
     private Long id;
+    private String contractId;
     private LocalDate dateDebut;
     private LocalDate dateFin;
     private Contrat.StatutContrat statut;

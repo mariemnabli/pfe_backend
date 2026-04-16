@@ -35,6 +35,7 @@ public class ContratService {
                 : genererDirectoryNumber();
 
         Contrat contrat = Contrat.builder()
+                .contractId(genererContractId())
                 .dateDebut(dto.getDateDebut())
                 .dateFin(dto.getDateFin())
                 .statut(Contrat.StatutContrat.ACTIF)
@@ -130,10 +131,17 @@ public class ContratService {
         return toDTO(contratRepository.save(contrat));
     }
 
+    private String genererContractId() {
+        Long maxId = clientRepository.findMaxId().orElse(0L);
+        long prochain = maxId + 1;
+        return String.format("%06d", prochain);  // 000001, 000002 ...
+    }
+
     // -------------------- Mapping DTO --------------------
     private ContratDTO toDTO(Contrat c) {
         return ContratDTO.builder()
                 .id(c.getId())
+                .contractId(c.getContractId())
                 .dateDebut(c.getDateDebut())
                 .dateFin(c.getDateFin())
                 .statut(c.getStatut())

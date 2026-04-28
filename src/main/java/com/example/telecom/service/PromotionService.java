@@ -1,13 +1,25 @@
 package com.example.telecom.service;
 
 import com.example.telecom.dto.PromotionDTO;
+import com.example.telecom.dto.PromotionAssignmentDTO;
+import com.example.telecom.entity.Client;
+import com.example.telecom.entity.Contrat;
+import com.example.telecom.entity.CustomerGroup;
+import com.example.telecom.entity.CustomerGroupMember;
 import com.example.telecom.entity.Promotion;
+import com.example.telecom.entity.PromotionAssignment;
 import com.example.telecom.entity.User;
+import com.example.telecom.repository.ClientRepository;
+import com.example.telecom.repository.CustomerGroupMemberRepository;
+import com.example.telecom.repository.ContratRepository;
+import com.example.telecom.repository.CustomerGroupRepository;
+import com.example.telecom.repository.PromotionAssignmentRepository;
 import com.example.telecom.repository.PromotionRepository;
 import com.example.telecom.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,7 +28,12 @@ import java.util.stream.Collectors;
 public class PromotionService {
 
     private final PromotionRepository promotionRepository;
+    private final PromotionAssignmentRepository promotionAssignmentRepository;
     private final UserRepository userRepository;
+    private final ClientRepository clientRepository;
+    private final CustomerGroupMemberRepository customerGroupMemberRepository;
+    private final CustomerGroupRepository customerGroupRepository;
+    private final ContratRepository contratRepository;
 
     // Métier: Créer une promotion
     public PromotionDTO creerPromotion(PromotionDTO dto) {
@@ -88,6 +105,84 @@ public class PromotionService {
         return toDTO(getPromotion(id));
     }
 
+    public PromotionAssignmentDTO assignerPromotion(Long promotionId, PromotionAssignmentDTO dto) {
+        Promotion promotion = getPromotion(promotionId);
+
+        if (dto.getTargetType() == null) {
+            throw new RuntimeException("targetType est obligatoire");
+        }
+
+        PromotionAssignment assignment = PromotionAssignment.builder()
+                .promotion(promotion)
+                .targetType(dto.getTargetType())
+                .status(dto.getStatus() != null ? dto.getStatus() : PromotionAssignment.AssignmentStatus.ACTIVE)
+                .assignmentMode(dto.getAssignmentMode() != null ? dto.getAssignmentMode() : PromotionAssignment.AssignmentMode.MANUAL)
+                .effectiveStartDate(dto.getEffectiveStartDate() != null ? dto.getEffectiveStartDate() : LocalDate.now())
+                .effectiveEndDate(dto.getEffectiveEndDate())
+                .inheritedToMembers(dto.isInheritedToMembers())
+                .build();
+
+        switch (dto.getTargetType()) {
+            case CUSTOMER -> assignment.setTargetCustomer(resolveCustomer(dto.getTargetCustomerId()));
+            case CUSTOMER_GROUP -> assignment.setTargetGroup(resolveGroup(dto.getTargetGroupId()));
+            case CONTRACT -> assignment.setTargetContract(resolveContract(dto.getTargetContractId()));
+            default -> throw new RuntimeException("targetType non supporte");
+        }
+
+        return toAssignmentDTO(promotionAssignmentRepository.save(assignment));
+    }
+
+    public List<PromotionAssignmentDTO> getAssignmentsByPromotion(Long promotionId) {
+        getPromotion(promotionId);
+        return promotionAssignmentRepository.findByPromotionId(promotionId).stream()
+                .map(this::toAssignmentDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<PromotionDTO> getPromotionsApplicablesAuClient(Long customerId) {
+        resolveCustomer(customerId);
+        List<Long> activeGroupIds = customerGroupMemberRepository
+                .findByCustomerIdAndStatus(customerId, CustomerGroupMember.MembershipStatus.ACTIVE)
+                .stream()
+                .map(member -> member.getCustomerGroup().getId())
+                .toList();
+
+        return promotionRepository.findAll().stream()
+                .filter(promotion -> hasActiveTarget(promotion, customerId, List.of(), activeGroupIds, null))
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public List<PromotionDTO> getPromotionsApplicablesAuGroupe(Long groupId) {
+        resolveGroup(groupId);
+
+        return promotionRepository.findAll().stream()
+                .filter(promotion -> hasActiveTarget(promotion, null, List.of(groupId), List.of(), null))
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public boolean isPromotionAssignableToContrat(Contrat contrat, Promotion promotion) {
+        List<PromotionAssignment> assignments = promotionAssignmentRepository.findByPromotionId(promotion.getId());
+        if (assignments.isEmpty()) {
+            return true;
+        }
+
+        Long customerId = contrat.getClient() != null ? contrat.getClient().getId() : null;
+        Long groupId = contrat.getCustomerGroup() != null ? contrat.getCustomerGroup().getId() : null;
+        List<Long> inheritedGroupIds = customerId != null
+                ? customerGroupMemberRepository.findByCustomerIdAndStatus(customerId, CustomerGroupMember.MembershipStatus.ACTIVE)
+                .stream()
+                .map(member -> member.getCustomerGroup().getId())
+                .toList()
+                : List.of();
+
+        Long contractId = contrat.getId();
+        List<Long> directGroupIds = groupId != null ? List.of(groupId) : List.of();
+
+        return assignments.stream().anyMatch(assignment -> assignmentMatches(assignment, customerId, directGroupIds, inheritedGroupIds, contractId));
+    }
+
     private Promotion getPromotion(Long id) {
         return promotionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Promotion introuvable : " + id));
@@ -151,6 +246,120 @@ public class PromotionService {
                         .email(p.getValidateur().getEmail())
                         .role(p.getValidateur().getRole().name())
                         .build() : null)
+                .assignments(promotionAssignmentRepository.findByPromotionId(p.getId()).stream()
+                        .map(this::toAssignmentDTO)
+                        .collect(Collectors.toList()))
                 .build();
+    }
+
+    private Client resolveCustomer(Long customerId) {
+        if (customerId == null) {
+            throw new RuntimeException("targetCustomerId est obligatoire");
+        }
+        return clientRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Client introuvable : " + customerId));
+    }
+
+    private CustomerGroup resolveGroup(Long groupId) {
+        if (groupId == null) {
+            throw new RuntimeException("targetGroupId est obligatoire");
+        }
+        return customerGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Groupe introuvable : " + groupId));
+    }
+
+    private Contrat resolveContract(Long contractId) {
+        if (contractId == null) {
+            throw new RuntimeException("targetContractId est obligatoire");
+        }
+        return contratRepository.findById(contractId)
+                .orElseThrow(() -> new RuntimeException("Contrat introuvable : " + contractId));
+    }
+
+    private PromotionAssignmentDTO toAssignmentDTO(PromotionAssignment assignment) {
+        return PromotionAssignmentDTO.builder()
+                .id(assignment.getId())
+                .promotionId(assignment.getPromotion().getId())
+                .targetType(assignment.getTargetType())
+                .targetCustomerId(assignment.getTargetCustomer() != null ? assignment.getTargetCustomer().getId() : null)
+                .targetGroupId(assignment.getTargetGroup() != null ? assignment.getTargetGroup().getId() : null)
+                .targetContractId(assignment.getTargetContract() != null ? assignment.getTargetContract().getId() : null)
+                .status(assignment.getStatus())
+                .assignmentMode(assignment.getAssignmentMode())
+                .effectiveStartDate(assignment.getEffectiveStartDate())
+                .effectiveEndDate(assignment.getEffectiveEndDate())
+                .inheritedToMembers(assignment.isInheritedToMembers())
+                .assignedAt(assignment.getAssignedAt())
+                .target(buildTargetSummary(assignment))
+                .build();
+    }
+
+    private PromotionAssignmentDTO.TargetSummary buildTargetSummary(PromotionAssignment assignment) {
+        if (assignment.getTargetCustomer() != null) {
+            return PromotionAssignmentDTO.TargetSummary.builder()
+                    .type("CUSTOMER")
+                    .id(assignment.getTargetCustomer().getId())
+                    .label(assignment.getTargetCustomer().getNom() + " " + assignment.getTargetCustomer().getPrenom())
+                    .build();
+        }
+        if (assignment.getTargetGroup() != null) {
+            return PromotionAssignmentDTO.TargetSummary.builder()
+                    .type("CUSTOMER_GROUP")
+                    .id(assignment.getTargetGroup().getId())
+                    .label(assignment.getTargetGroup().getName())
+                    .build();
+        }
+        if (assignment.getTargetContract() != null) {
+            return PromotionAssignmentDTO.TargetSummary.builder()
+                    .type("CONTRACT")
+                    .id(assignment.getTargetContract().getId())
+                    .label(assignment.getTargetContract().getContractId())
+                    .build();
+        }
+        return null;
+    }
+
+    private boolean hasActiveTarget(Promotion promotion, Long customerId, List<Long> directGroupIds, List<Long> inheritedGroupIds, Long contractId) {
+        return promotionAssignmentRepository.findByPromotionId(promotion.getId()).stream()
+                .anyMatch(assignment -> assignmentMatches(assignment, customerId, directGroupIds, inheritedGroupIds, contractId));
+    }
+
+    private boolean assignmentMatches(PromotionAssignment assignment, Long customerId, List<Long> directGroupIds, List<Long> inheritedGroupIds, Long contractId) {
+        if (assignment.getStatus() != PromotionAssignment.AssignmentStatus.ACTIVE) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        if (assignment.getEffectiveStartDate() != null && today.isBefore(assignment.getEffectiveStartDate())) {
+            return false;
+        }
+        if (assignment.getEffectiveEndDate() != null && today.isAfter(assignment.getEffectiveEndDate())) {
+            return false;
+        }
+
+        return switch (assignment.getTargetType()) {
+            case CUSTOMER -> assignment.getTargetCustomer() != null
+                    && customerId != null
+                    && assignment.getTargetCustomer().getId().equals(customerId);
+            case CUSTOMER_GROUP -> matchesGroupAssignment(assignment, directGroupIds, inheritedGroupIds);
+            case CONTRACT -> assignment.getTargetContract() != null
+                    && contractId != null
+                    && assignment.getTargetContract().getId().equals(contractId);
+        };
+    }
+
+    private boolean matchesGroupAssignment(PromotionAssignment assignment, List<Long> directGroupIds, List<Long> inheritedGroupIds) {
+        if (assignment.getTargetGroup() == null) {
+            return false;
+        }
+
+        Long targetGroupId = assignment.getTargetGroup().getId();
+        if (directGroupIds != null && directGroupIds.contains(targetGroupId)) {
+            return true;
+        }
+
+        return inheritedGroupIds != null
+                && inheritedGroupIds.contains(targetGroupId)
+                && assignment.isInheritedToMembers();
     }
 }

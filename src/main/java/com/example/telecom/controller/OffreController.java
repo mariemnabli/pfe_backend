@@ -5,6 +5,7 @@ import com.example.telecom.dto.OffreDTO;
 import com.example.telecom.service.OffreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,18 +20,21 @@ public class OffreController {
 
     // Créer une offre avec ses services en une seule requête
     @PostMapping
+    @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<OffreDTO> creer(@RequestBody OffreDTO dto) {
         return ResponseEntity.ok(offreService.creer(dto));
     }
 
     // Modifier une offre (remplace tous les services)
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<OffreDTO> modifier(@PathVariable Long id, @RequestBody OffreDTO dto) {
         return ResponseEntity.ok(offreService.modifier(id, dto));
     }
 
     // Ajouter des services à une offre existante
     @PostMapping("/{id}/services")
+    @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<OffreDTO> ajouterServices(
             @PathVariable Long id,
             @RequestBody AddServicesDTO dto) {
@@ -39,6 +43,7 @@ public class OffreController {
 
     // Retirer un service d'une offre
     @DeleteMapping("/{offreId}/services/{serviceId}")
+    @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<OffreDTO> retirerService(
             @PathVariable Long offreId,
             @PathVariable Long serviceId) {
@@ -46,11 +51,13 @@ public class OffreController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('METIER','VENTE','EXPLOIT')")
     public ResponseEntity<OffreDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(offreService.getById(id));
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('METIER','VENTE','EXPLOIT')")
     public ResponseEntity<List<OffreDTO>> getAll() {
         return ResponseEntity.ok(offreService.getAll());
     }

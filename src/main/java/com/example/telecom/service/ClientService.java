@@ -2,9 +2,14 @@ package com.example.telecom.service;
 
 import com.example.telecom.dto.ClientDTO;
 import com.example.telecom.entity.Client;
+import com.example.telecom.entity.CustomerGroup;
+import com.example.telecom.entity.CustomerGroupMember;
 import com.example.telecom.repository.ClientRepository;
+import com.example.telecom.repository.CustomerGroupMemberRepository;
+import com.example.telecom.repository.CustomerGroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,6 +18,8 @@ import java.util.stream.Collectors;
 public class ClientService {
 
     private final ClientRepository clientRepository;
+    private final CustomerGroupRepository customerGroupRepository;
+    private final CustomerGroupMemberRepository customerGroupMemberRepository;
 
     // ── Créer un client ────────────────────────────────────────
     public ClientDTO creerClient(ClientDTO dto) {
@@ -44,7 +51,9 @@ public class ClientService {
             client.setPassportImagePath(dto.getPassportImagePath());
         }
 
-        return toDTO(clientRepository.save(client));
+        Client saved = clientRepository.save(client);
+        rattacherAuGroupeSiNecessaire(saved, dto.getCustomerGroupId());
+        return toDTO(saved);
     }
 
     // ── Modifier un client ─────────────────────────────────────
@@ -69,14 +78,18 @@ public class ClientService {
         client.setPassportImagePath(null);
 
         if (dto.getDocumentType() == 1) {
+            verifierUniciteCin(dto.getCinNumber(), client.getId());
             client.setCinNumber(dto.getCinNumber());
             client.setCinImagePath(dto.getCinImagePath());
         } else {
+            verifierUnicitePassport(dto.getPassportNumber(), client.getId());
             client.setPassportNumber(dto.getPassportNumber());
             client.setPassportImagePath(dto.getPassportImagePath());
         }
 
-        return toDTO(clientRepository.save(client));
+        Client saved = clientRepository.save(client);
+        syncGroupMembership(saved, dto.getCustomerGroupId());
+        return toDTO(saved);
     }
 
     // ── Getters ────────────────────────────────────────────────
@@ -90,6 +103,7 @@ public class ClientService {
     }
 
     public void supprimerClient(Long id) {
+        customerGroupMemberRepository.findByCustomerId(id).forEach(customerGroupMemberRepository::delete);
         clientRepository.deleteById(id);
     }
 
@@ -120,6 +134,11 @@ public class ClientService {
 
     // ── Mapper entité → DTO ────────────────────────────────────
     private ClientDTO toDTO(Client c) {
+        CustomerGroupMember activeMembership = customerGroupMemberRepository
+                .findFirstByCustomerIdAndStatus(c.getId(), CustomerGroupMember.MembershipStatus.ACTIVE)
+                .orElse(null);
+        CustomerGroup group = activeMembership != null ? activeMembership.getCustomerGroup() : null;
+
         return ClientDTO.builder()
                 .id(c.getId())
                 .customerId(c.getCustomerId())
@@ -134,6 +153,73 @@ public class ClientService {
                 .cinImagePath(c.getCinImagePath())
                 .passportNumber(c.getPassportNumber())
                 .passportImagePath(c.getPassportImagePath())
+                .customerGroupId(group != null ? group.getId() : null)
+                .customerGroup(group != null ? ClientDTO.GroupSummary.builder()
+                        .id(group.getId())
+                        .groupCode(group.getGroupCode())
+                        .name(group.getName())
+                        .build() : null)
                 .build();
+    }
+
+    private void verifierUniciteCin(String cinNumber, Long currentClientId) {
+        clientRepository.findByCinNumber(cinNumber)
+                .filter(client -> !client.getId().equals(currentClientId))
+                .ifPresent(client -> {
+                    throw new RuntimeException("Ce numéro CIN existe déjà : " + cinNumber);
+                });
+    }
+
+    private void verifierUnicitePassport(String passportNumber, Long currentClientId) {
+        clientRepository.findByPassportNumber(passportNumber)
+                .filter(client -> !client.getId().equals(currentClientId))
+                .ifPresent(client -> {
+                    throw new RuntimeException("Ce numéro de passport existe déjà : " + passportNumber);
+                });
+    }
+
+    private void rattacherAuGroupeSiNecessaire(Client client, Long customerGroupId) {
+        if (customerGroupId == null) {
+            return;
+        }
+
+        CustomerGroup group = customerGroupRepository.findById(customerGroupId)
+                .orElseThrow(() -> new RuntimeException("Groupe introuvable : " + customerGroupId));
+
+        CustomerGroupMember membership = CustomerGroupMember.builder()
+                .customerGroup(group)
+                .customer(client)
+                .memberRole(CustomerGroupMember.MemberRole.USER)
+                .joinedAt(java.time.LocalDate.now())
+                .status(CustomerGroupMember.MembershipStatus.ACTIVE)
+                .build();
+        customerGroupMemberRepository.save(membership);
+    }
+
+    private void syncGroupMembership(Client client, Long customerGroupId) {
+        CustomerGroupMember activeMembership = customerGroupMemberRepository
+                .findFirstByCustomerIdAndStatus(client.getId(), CustomerGroupMember.MembershipStatus.ACTIVE)
+                .orElse(null);
+
+        if (customerGroupId == null) {
+            if (activeMembership != null) {
+                activeMembership.setStatus(CustomerGroupMember.MembershipStatus.INACTIVE);
+                activeMembership.setLeftAt(java.time.LocalDate.now());
+                customerGroupMemberRepository.save(activeMembership);
+            }
+            return;
+        }
+
+        if (activeMembership != null && activeMembership.getCustomerGroup().getId().equals(customerGroupId)) {
+            return;
+        }
+
+        if (activeMembership != null) {
+            activeMembership.setStatus(CustomerGroupMember.MembershipStatus.INACTIVE);
+            activeMembership.setLeftAt(java.time.LocalDate.now());
+            customerGroupMemberRepository.save(activeMembership);
+        }
+
+        rattacherAuGroupeSiNecessaire(client, customerGroupId);
     }
 }

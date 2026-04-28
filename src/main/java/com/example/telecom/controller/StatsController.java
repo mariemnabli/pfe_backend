@@ -4,6 +4,7 @@ import com.example.telecom.repository.*;
 import com.example.telecom.entity.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -25,6 +26,7 @@ public class StatsController {
 
     // ── VENTE ─────────────────────────────────────────────────
     @GetMapping("/vente")
+    @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<Map<String, Object>> statsVente() {
         Map<String, Object> stats = new LinkedHashMap<>();
 
@@ -55,6 +57,7 @@ public class StatsController {
 
     // ── METIER ────────────────────────────────────────────────
     @GetMapping("/metier")
+    @PreAuthorize("hasRole('METIER')")
     public ResponseEntity<Map<String, Object>> statsMetier() {
         Map<String, Object> stats = new LinkedHashMap<>();
 
@@ -93,6 +96,7 @@ public class StatsController {
 
     // ── EXPLOIT ───────────────────────────────────────────────
     @GetMapping("/exploit")
+    @PreAuthorize("hasRole('EXPLOIT')")
     public ResponseEntity<Map<String, Object>> statsExploit() {
         Map<String, Object> stats = new LinkedHashMap<>();
 
@@ -125,6 +129,7 @@ public class StatsController {
 
     // ── DSI ───────────────────────────────────────────────────
     @GetMapping("/dsi")
+    @PreAuthorize("hasRole('DSI')")
     public ResponseEntity<Map<String, Object>> statsDsi() {
         Map<String, Object> stats = new LinkedHashMap<>();
 

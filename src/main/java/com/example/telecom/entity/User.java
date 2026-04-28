@@ -3,6 +3,7 @@ package com.example.telecom.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -24,6 +25,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @Column(nullable = false)
     private boolean enabled = false;
     private boolean premiereConnexion = false;
     private Date firstTimeConnexion;

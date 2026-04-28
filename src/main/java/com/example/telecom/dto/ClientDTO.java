@@ -23,4 +23,18 @@ public class ClientDTO {
     // Champs PASSPORT (documentType = 2)
     private String passportNumber;
     private String passportImagePath;
+
+    private Long customerGroupId;
+    private GroupSummary customerGroup;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class GroupSummary {
+        private Long id;
+        private String groupCode;
+        private String name;
+    }
 }

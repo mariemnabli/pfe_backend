@@ -1,5 +1,7 @@
 package com.example.telecom.dto;
 
+import com.example.telecom.entity.ContractHolderType;
+import com.example.telecom.entity.ContractType;
 import com.example.telecom.entity.Contrat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +17,8 @@ import java.time.LocalDate;
 public class ContratDTO {
     private Long id;
     private String contractId;
+    private ContractType contractType;
+    private ContractHolderType holderType;
     private LocalDate dateDebut;
     private LocalDate dateFin;
     private Contrat.StatutContrat statut;
@@ -22,10 +26,12 @@ public class ContratDTO {
 
     // Pour la création (input)
     private Long clientId;
+    private Long customerGroupId;
     private Long offreId;
 
     // Pour la lecture (output enrichi)
     private ClientSummary client;
+    private GroupSummary customerGroup;
     private OffreSummary offre;
 
     @Data
@@ -47,5 +53,16 @@ public class ContratDTO {
     public static class OffreSummary {
         private Long id;
         private String nom;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GroupSummary {
+        private Long id;
+        private String groupCode;
+        private String name;
+        private String groupType;
     }
 }

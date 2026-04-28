@@ -1,0 +1,278 @@
+@startuml telecom-class-diagram
+
+title Telecom Backend - Class Diagram
+
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+
+package "Core Entities" {
+  class User {
+    +id: Long
+    +username: String
+    +email: String
+    +password: String
+    +role: Role
+    +enabled: boolean
+    +premiereConnexion: boolean
+    +firstTimeConnexion: Date
+    +resetToken: String
+    +resetTokenExpiry: LocalDateTime
+    +refreshToken: String
+    +refreshTokenExpiry: Instant
+  }
+
+  class Client {
+    +id: Long
+    +customerId: String
+    +nom: String
+    +prenom: String
+    +telephone: String
+    +email: String
+    +adresse: String
+    +ville: String
+    +documentType: Integer
+    +cinNumber: String
+    +cinImagePath: String
+    +passportNumber: String
+    +passportImagePath: String
+  }
+
+  class CustomerGroup {
+    +id: Long
+    +groupCode: String
+    +name: String
+    +groupType: GroupType
+    +status: GroupStatus
+  }
+
+  class CustomerGroupMember {
+    +id: Long
+    +memberRole: MemberRole
+    +joinedAt: LocalDate
+    +leftAt: LocalDate
+    +primaryMember: boolean
+    +status: MembershipStatus
+  }
+
+  class Contrat {
+    +id: Long
+    +contractId: String
+    +contractType: ContractType
+    +holderType: ContractHolderType
+    +dateDebut: LocalDate
+    +dateFin: LocalDate
+    +statut: StatutContrat
+    +directoryNumber: Number
+  }
+
+  class Offre {
+    +id: Long
+    +nomOffre: String
+    +typeOffre: String
+  }
+
+  class PlanTarifaire {
+    +id: Long
+    +nom: String
+    +prixMensuel: Double
+    +description: String
+  }
+
+  class Services {
+    +id: Long
+    +nomService: String
+    +description: String
+  }
+
+  class Promotion {
+    +id: Long
+    +nomPromotion: String
+    +typeReduction: String
+    +valeurReduction: Double
+    +dateDebut: LocalDate
+    +dateFin: LocalDate
+    +statut: StatutPromotion
+    +regleEligibilite: String
+    +ancienneteMinimale: Integer
+  }
+
+  class PromotionAssignment {
+    +id: Long
+    +targetType: TargetType
+    +status: AssignmentStatus
+    +assignmentMode: AssignmentMode
+    +effectiveStartDate: LocalDate
+    +effectiveEndDate: LocalDate
+    +inheritedToMembers: boolean
+    +assignedAt: LocalDateTime
+  }
+
+  class SouscriptionPromotion {
+    +id: Long
+    +dateSouscription: LocalDate
+    +statut: StatutSouscription
+  }
+
+  class Reclamation {
+    +id: Long
+    +description: String
+    +statut: StatutReclamation
+    +dateCreation: LocalDateTime
+    +dateMiseAJour: LocalDateTime
+    +commentaireVendeur: String
+  }
+}
+
+package "Enums" {
+  enum Role {
+    METIER
+    EXPLOIT
+    DSI
+    VENTE
+  }
+
+  enum ContractType {
+    INDIVIDUAL
+    ENTERPRISE
+  }
+
+  enum ContractHolderType {
+    CUSTOMER
+    CUSTOMER_GROUP
+  }
+
+  enum StatutContrat {
+    ACTIF
+    RESILIE
+    SUSPENDU
+  }
+
+  enum GroupType {
+    ENTERPRISE
+    FAMILY
+    SME
+    OTHER
+  }
+
+  enum GroupStatus {
+    ACTIVE
+    INACTIVE
+  }
+
+  enum MemberRole {
+    OWNER
+    BILLING
+    USER
+    DECISION_MAKER
+  }
+
+  enum MembershipStatus {
+    ACTIVE
+    INACTIVE
+  }
+
+  enum StatutPromotion {
+    EN_ATTENTE
+    VALIDEE
+    REJETEE
+    ACTIVE
+    SUSPENDUE
+  }
+
+  enum TargetType {
+    CUSTOMER
+    CUSTOMER_GROUP
+    CONTRACT
+  }
+
+  enum AssignmentStatus {
+    ACTIVE
+    SUSPENDED
+    REMOVED
+    EXPIRED
+  }
+
+  enum AssignmentMode {
+    MANUAL
+    AUTOMATIC
+    MIGRATED
+  }
+
+  enum StatutSouscription {
+    ACTIVE
+    EXPIRÉE
+    ANNULÉE
+  }
+
+  enum StatutReclamation {
+    OUVERTE
+    EN_COURS
+    FERMEE
+  }
+}
+
+User --> Role
+Contrat --> ContractType
+Contrat --> ContractHolderType
+Contrat --> StatutContrat
+CustomerGroup --> GroupType
+CustomerGroup --> GroupStatus
+CustomerGroupMember --> MemberRole
+CustomerGroupMember --> MembershipStatus
+Promotion --> StatutPromotion
+PromotionAssignment --> TargetType
+PromotionAssignment --> AssignmentStatus
+PromotionAssignment --> AssignmentMode
+SouscriptionPromotion --> StatutSouscription
+Reclamation --> StatutReclamation
+
+Client "1" o-- "0..*" Contrat : contrats
+CustomerGroup "1" o-- "0..*" Contrat : enterprise contracts
+Offre "1" <-- "0..*" Contrat : offre
+
+CustomerGroup "1" o-- "0..*" CustomerGroupMember : members
+Client "1" o-- "0..*" CustomerGroupMember : memberships
+
+PlanTarifaire "1" <-- "0..*" Offre : planTarifaire
+Offre "0..*" -- "0..*" Services : services
+
+Promotion "1" o-- "0..*" PromotionAssignment : assignments
+Client "1" <-- "0..*" PromotionAssignment : targetCustomer
+CustomerGroup "1" <-- "0..*" PromotionAssignment : targetGroup
+Contrat "1" <-- "0..*" PromotionAssignment : targetContract
+
+Contrat "1" o-- "0..*" SouscriptionPromotion : souscriptions
+Promotion "1" o-- "0..*" SouscriptionPromotion : souscriptions
+
+Client "1" o-- "0..*" Reclamation : reclamations
+
+User "1" <-- "0..*" Promotion : createur
+User "1" <-- "0..*" Promotion : validateur
+
+note right of Contrat
+  Individual contract:
+  - contractType = INDIVIDUAL
+  - holderType = CUSTOMER
+  - client != null
+
+  Enterprise contract:
+  - contractType = ENTERPRISE
+  - holderType = CUSTOMER_GROUP
+  - customerGroup != null
+end note
+
+note right of PromotionAssignment
+  A promotion can target:
+  - one customer
+  - one customer group
+  - one contract
+
+  If inheritedToMembers = true,
+  group members inherit eligibility.
+end note
+
+@enduml

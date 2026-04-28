@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -39,6 +40,11 @@ public class Promotion {
     @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<SouscriptionPromotion> souscriptions;
+
+    @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @Builder.Default
+    private List<PromotionAssignment> assignments = new ArrayList<>();
 
     public enum StatutPromotion {
         EN_ATTENTE, VALIDEE, REJETEE, ACTIVE, SUSPENDUE

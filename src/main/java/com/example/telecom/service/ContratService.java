@@ -1,11 +1,15 @@
 package com.example.telecom.service;
 
 import com.example.telecom.dto.ContratDTO;
+import com.example.telecom.entity.ContractHolderType;
+import com.example.telecom.entity.ContractType;
 import com.example.telecom.entity.Client;
 import com.example.telecom.entity.Contrat;
+import com.example.telecom.entity.CustomerGroup;
 import com.example.telecom.entity.Offre;
 import com.example.telecom.repository.ClientRepository;
 import com.example.telecom.repository.ContratRepository;
+import com.example.telecom.repository.CustomerGroupRepository;
 import com.example.telecom.repository.OffreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,26 +24,27 @@ public class ContratService {
 
     private final ContratRepository contratRepository;
     private final ClientRepository clientRepository;
-    // -------------------- Création --------------------
-
+    private final CustomerGroupRepository customerGroupRepository;
     private final OffreRepository offreRepository;
+
     public ContratDTO creerContrat(ContratDTO dto) {
-        Client client = clientRepository.findById(dto.getClientId())
-                .orElseThrow(() -> new RuntimeException("Client introuvable : " + dto.getClientId()));
+        HolderSelection holder = resolveHolder(dto);
         Offre offre = offreRepository.findById(dto.getOffreId())
                 .orElseThrow(() -> new RuntimeException("Offre introuvable : " + dto.getOffreId()));
 
-        // ✅ Générer un numéro unique si non fourni
         Number directoryNumber = dto.getDirectoryNumber() != null
                 ? dto.getDirectoryNumber()
                 : genererDirectoryNumber();
 
         Contrat contrat = Contrat.builder()
                 .contractId(genererContractId())
+                .contractType(holder.contractType())
+                .holderType(holder.holderType())
                 .dateDebut(dto.getDateDebut())
                 .dateFin(dto.getDateFin())
                 .statut(Contrat.StatutContrat.ACTIF)
-                .client(client)
+                .client(holder.client())
+                .customerGroup(holder.customerGroup())
                 .offre(offre)
                 .directoryNumber(directoryNumber)
                 .build();
@@ -72,14 +77,14 @@ public class ContratService {
         if (dto.getDirectoryNumber() != null)
             contrat.setDirectoryNumber(dto.getDirectoryNumber());
 
-        // ✅ Changer le client
-        if (dto.getClientId() != null) {
-            Client client = clientRepository.findById(dto.getClientId())
-                    .orElseThrow(() -> new RuntimeException("Client introuvable : " + dto.getClientId()));
-            contrat.setClient(client);
+        if (dto.getClientId() != null || dto.getCustomerGroupId() != null || dto.getContractType() != null || dto.getHolderType() != null) {
+            HolderSelection holder = resolveHolder(dto);
+            contrat.setContractType(holder.contractType());
+            contrat.setHolderType(holder.holderType());
+            contrat.setClient(holder.client());
+            contrat.setCustomerGroup(holder.customerGroup());
         }
 
-        // ✅ Changer l'offre
         if (dto.getOffreId() != null) {
             Offre offre = offreRepository.findById(dto.getOffreId())
                     .orElseThrow(() -> new RuntimeException("Offre introuvable : " + dto.getOffreId()));
@@ -109,6 +114,12 @@ public class ContratService {
                 .collect(Collectors.toList());
     }
 
+    public List<ContratDTO> getContratsByGroup(Long customerGroupId) {
+        return contratRepository.findByCustomerGroupId(customerGroupId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<ContratDTO> getAllContrats() {
         return contratRepository.findAll().stream()
                 .map(this::toDTO)
@@ -132,30 +143,36 @@ public class ContratService {
     }
 
     private String genererContractId() {
-        Long maxId = clientRepository.findMaxId().orElse(0L);
+        Long maxId = contratRepository.findMaxId().orElse(0L);
         long prochain = maxId + 1;
         return String.format("%06d", prochain);  // 000001, 000002 ...
     }
 
-    // -------------------- Mapping DTO --------------------
     private ContratDTO toDTO(Contrat c) {
         return ContratDTO.builder()
                 .id(c.getId())
                 .contractId(c.getContractId())
+                .contractType(c.getContractType())
+                .holderType(c.getHolderType())
                 .dateDebut(c.getDateDebut())
                 .dateFin(c.getDateFin())
                 .statut(c.getStatut())
                 .directoryNumber(c.getDirectoryNumber())
-                // IDs (compatibilité création)
                 .clientId(c.getClient() != null ? c.getClient().getId() : null)
+                .customerGroupId(c.getCustomerGroup() != null ? c.getCustomerGroup().getId() : null)
                 .offreId(c.getOffre()  != null ? c.getOffre().getId()  : null)
-                // Objets enrichis
                 .client(c.getClient() != null ? ContratDTO.ClientSummary.builder()
                         .id(c.getClient().getId())
                         .nom(c.getClient().getNom())
                         .prenom(c.getClient().getPrenom())
                         .email(c.getClient().getEmail())
                         .telephone(c.getClient().getTelephone())
+                        .build() : null)
+                .customerGroup(c.getCustomerGroup() != null ? ContratDTO.GroupSummary.builder()
+                        .id(c.getCustomerGroup().getId())
+                        .groupCode(c.getCustomerGroup().getGroupCode())
+                        .name(c.getCustomerGroup().getName())
+                        .groupType(c.getCustomerGroup().getGroupType().name())
                         .build() : null)
                 .offre(c.getOffre() != null ? ContratDTO.OffreSummary.builder()
                         .id(c.getOffre().getId())
@@ -164,4 +181,55 @@ public class ContratService {
                         .build() : null)
                 .build();
     }
+
+    private HolderSelection resolveHolder(ContratDTO dto) {
+        ContractType contractType = dto.getContractType();
+        ContractHolderType holderType = dto.getHolderType();
+
+        if (contractType == null && dto.getCustomerGroupId() != null) {
+            contractType = ContractType.ENTERPRISE;
+        } else if (contractType == null) {
+            contractType = ContractType.INDIVIDUAL;
+        }
+
+        if (holderType == null && contractType == ContractType.ENTERPRISE) {
+            holderType = ContractHolderType.CUSTOMER_GROUP;
+        } else if (holderType == null) {
+            holderType = ContractHolderType.CUSTOMER;
+        }
+
+        if (contractType == ContractType.INDIVIDUAL && holderType != ContractHolderType.CUSTOMER) {
+            throw new RuntimeException("Un contrat individuel doit etre porte par un client");
+        }
+
+        if (contractType == ContractType.ENTERPRISE && holderType != ContractHolderType.CUSTOMER_GROUP) {
+            throw new RuntimeException("Un contrat entreprise doit etre porte par un groupe");
+        }
+
+        Client client = null;
+        CustomerGroup customerGroup = null;
+
+        if (holderType == ContractHolderType.CUSTOMER) {
+            if (dto.getClientId() == null) {
+                throw new RuntimeException("clientId est obligatoire pour un contrat individuel");
+            }
+            client = clientRepository.findById(dto.getClientId())
+                    .orElseThrow(() -> new RuntimeException("Client introuvable : " + dto.getClientId()));
+        } else {
+            if (dto.getCustomerGroupId() == null) {
+                throw new RuntimeException("customerGroupId est obligatoire pour un contrat entreprise");
+            }
+            customerGroup = customerGroupRepository.findById(dto.getCustomerGroupId())
+                    .orElseThrow(() -> new RuntimeException("Groupe introuvable : " + dto.getCustomerGroupId()));
+        }
+
+        return new HolderSelection(contractType, holderType, client, customerGroup);
+    }
+
+    private record HolderSelection(
+            ContractType contractType,
+            ContractHolderType holderType,
+            Client client,
+            CustomerGroup customerGroup
+    ) {}
 }

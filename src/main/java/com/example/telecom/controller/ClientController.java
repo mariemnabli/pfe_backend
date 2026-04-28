@@ -40,6 +40,7 @@ public class ClientController {
             @RequestParam("adresse")      String adresse,
             @RequestParam("ville")        String ville,
             @RequestParam("documentType") Integer documentType,
+            @RequestParam(value = "customerGroupId", required = false) Long customerGroupId,
             @RequestParam(value = "cinNumber",       required = false) String cinNumber,
             @RequestParam(value = "passportNumber",  required = false) String passportNumber,
             @RequestParam(value = "image",           required = false) MultipartFile image
@@ -53,6 +54,7 @@ public class ClientController {
         dto.setAdresse(adresse);
         dto.setVille(ville);
         dto.setDocumentType(documentType);
+        dto.setCustomerGroupId(customerGroupId);
 
         if (documentType == 1) {
             dto.setCinNumber(cinNumber);
@@ -81,6 +83,7 @@ public class ClientController {
             @RequestParam("adresse")      String adresse,
             @RequestParam("ville")        String ville,
             @RequestParam("documentType") Integer documentType,
+            @RequestParam(value = "customerGroupId", required = false) Long customerGroupId,
             @RequestParam(value = "cinNumber",       required = false) String cinNumber,
             @RequestParam(value = "passportNumber",  required = false) String passportNumber,
             @RequestParam(value = "image",           required = false) MultipartFile image
@@ -94,6 +97,7 @@ public class ClientController {
         dto.setAdresse(adresse);
         dto.setVille(ville);
         dto.setDocumentType(documentType);
+        dto.setCustomerGroupId(customerGroupId);
 
         if (documentType == 1) {
             dto.setCinNumber(cinNumber);

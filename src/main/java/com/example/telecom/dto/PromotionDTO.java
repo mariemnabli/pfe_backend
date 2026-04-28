@@ -3,6 +3,7 @@ package com.example.telecom.dto;
 import com.example.telecom.entity.Promotion;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.List;
 
 @Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class PromotionDTO {
@@ -24,6 +25,7 @@ public class PromotionDTO {
     // ✅ output enrichi
     private UserSummary createur;
     private UserSummary validateur;
+    private List<PromotionAssignmentDTO> assignments;
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class UserSummary {

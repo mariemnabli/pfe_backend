@@ -18,6 +18,14 @@ public class Contrat {
     @Column(name = "contract_id", unique = true, updatable = false)
     private String contractId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ContractType contractType = ContractType.INDIVIDUAL;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ContractHolderType holderType = ContractHolderType.CUSTOMER;
+
     private LocalDate dateDebut;
     private LocalDate dateFin;
 
@@ -31,6 +39,10 @@ public class Contrat {
     private Client client;
 
     @ManyToOne
+    @JoinColumn(name = "customer_group_id")
+    private CustomerGroup customerGroup;
+
+    @ManyToOne
     @JoinColumn(name = "offre_id")
     private Offre offre;
 
@@ -38,6 +50,10 @@ public class Contrat {
     @OneToMany(mappedBy = "contrat", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<SouscriptionPromotion> souscriptions;
+
+    @OneToMany(mappedBy = "targetContract", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<PromotionAssignment> promotionAssignments;
 
     public enum StatutContrat {
         ACTIF, RESILIE, SUSPENDU

@@ -21,6 +21,7 @@ public class SouscriptionPromotionService {
     private final SouscriptionPromotionRepository souscriptionRepository;
     private final ContratRepository contratRepository;
     private final PromotionRepository promotionRepository;
+    private final PromotionService promotionService;
 
     // Vente: Vérifier éligibilité et souscrire
     public SouscriptionPromotion souscrire(Long contratId, Long promotionId) {
@@ -62,6 +63,10 @@ public class SouscriptionPromotionService {
             throw new RuntimeException("Le contrat n'est pas actif");
         }
 
+        if (!promotionService.isPromotionAssignableToContrat(contrat, promotion)) {
+            throw new RuntimeException("La promotion n'est pas affectee a ce client, groupe ou contrat");
+        }
+
         // Vérifier ancienneté minimale
         if (promotion.getAncienneteMinimale() != null && contrat.getDateDebut() != null) {
             long moisAnciennete = ChronoUnit.MONTHS.between(contrat.getDateDebut(), today);
@@ -72,6 +77,14 @@ public class SouscriptionPromotionService {
         }
 
         return true;
+    }
+
+    public boolean verifierEligibilite(Long contratId, Long promotionId) {
+        Contrat contrat = contratRepository.findById(contratId)
+                .orElseThrow(() -> new RuntimeException("Contrat introuvable"));
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new RuntimeException("Promotion introuvable"));
+        return verifierEligibilite(contrat, promotion);
     }
 
     public List<SouscriptionDTO> getSouscriptionsByContrat(Long contratId) {

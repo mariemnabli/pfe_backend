@@ -9,6 +9,7 @@ import com.example.telecom.repository.CustomerGroupMemberRepository;
 import com.example.telecom.repository.CustomerGroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,6 +55,13 @@ public class ClientService {
         Client saved = clientRepository.save(client);
         rattacherAuGroupeSiNecessaire(saved, dto.getCustomerGroupId());
         return toDTO(saved);
+    }
+
+    @Transactional
+    public List<ClientDTO> creerClients(List<ClientDTO> dtos) {
+        return dtos.stream()
+                .map(this::creerClient)
+                .collect(Collectors.toList());
     }
 
     // ── Modifier un client ─────────────────────────────────────

@@ -9,6 +9,7 @@ import com.example.telecom.repository.PlanTarifaireRepository;
 import com.example.telecom.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,6 +25,13 @@ public class OffreService {
     public OffreDTO creer(OffreDTO dto) {
         Offre offre = buildOffre(new Offre(), dto);
         return toDTO(offreRepository.save(offre));
+    }
+
+    @Transactional
+    public List<OffreDTO> creerLots(List<OffreDTO> dtos) {
+        return dtos.stream()
+                .map(this::creer)
+                .collect(Collectors.toList());
     }
 
     public OffreDTO modifier(Long id, OffreDTO dto) {

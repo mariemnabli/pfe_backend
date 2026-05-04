@@ -1,12 +1,16 @@
 package com.example.telecom.controller;
 
+import com.example.telecom.dto.BulkImportResponse;
 import com.example.telecom.dto.ServiceDTO;
+import com.example.telecom.service.CsvImportService;
 import com.example.telecom.service.ServiceTelecom;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -16,11 +20,25 @@ import java.util.List;
 public class ServiceController {
 
     private final ServiceTelecom serviceTelecom;
+    private final CsvImportService csvImportService;
 
     @PostMapping
     @PreAuthorize("hasRole('METIER')")
     public ResponseEntity<ServiceDTO> creer(@RequestBody ServiceDTO dto) {
         return ResponseEntity.ok(serviceTelecom.creer(dto));
+    }
+
+    @PostMapping("/upload-csv")
+    @PreAuthorize("hasRole('METIER')")
+    public ResponseEntity<BulkImportResponse<ServiceDTO>> uploadCsv(
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
+        List<ServiceDTO> services = serviceTelecom.creerLots(csvImportService.parseServices(file));
+        return ResponseEntity.ok(BulkImportResponse.<ServiceDTO>builder()
+                .resourceType("services")
+                .createdCount(services.size())
+                .items(services)
+                .build());
     }
 
     @PutMapping("/{id}")

@@ -1,12 +1,15 @@
 package com.example.telecom.controller;
 
 import com.example.telecom.dto.AddServicesDTO;
+import com.example.telecom.dto.BulkImportResponse;
 import com.example.telecom.dto.OffreDTO;
+import com.example.telecom.service.CsvImportService;
 import com.example.telecom.service.OffreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -17,24 +20,38 @@ import java.util.List;
 public class OffreController {
 
     private final OffreService offreService;
+    private final CsvImportService csvImportService;
 
     // Créer une offre avec ses services en une seule requête
     @PostMapping
-    @PreAuthorize("hasRole('VENTE')")
+    @PreAuthorize("hasRole('METIER')")
     public ResponseEntity<OffreDTO> creer(@RequestBody OffreDTO dto) {
         return ResponseEntity.ok(offreService.creer(dto));
     }
 
+    @PostMapping("/upload-csv")
+    @PreAuthorize("hasRole('METIER')")
+    public ResponseEntity<BulkImportResponse<OffreDTO>> uploadCsv(
+            @RequestParam("file") MultipartFile file
+    ) throws java.io.IOException {
+        List<OffreDTO> offres = offreService.creerLots(csvImportService.parseOffres(file));
+        return ResponseEntity.ok(BulkImportResponse.<OffreDTO>builder()
+                .resourceType("offres")
+                .createdCount(offres.size())
+                .items(offres)
+                .build());
+    }
+
     // Modifier une offre (remplace tous les services)
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('VENTE')")
+    @PreAuthorize("hasRole('METIER')")
     public ResponseEntity<OffreDTO> modifier(@PathVariable Long id, @RequestBody OffreDTO dto) {
         return ResponseEntity.ok(offreService.modifier(id, dto));
     }
 
     // Ajouter des services à une offre existante
     @PostMapping("/{id}/services")
-    @PreAuthorize("hasRole('VENTE')")
+    @PreAuthorize("hasRole('METIER')")
     public ResponseEntity<OffreDTO> ajouterServices(
             @PathVariable Long id,
             @RequestBody AddServicesDTO dto) {
@@ -43,7 +60,7 @@ public class OffreController {
 
     // Retirer un service d'une offre
     @DeleteMapping("/{offreId}/services/{serviceId}")
-    @PreAuthorize("hasRole('VENTE')")
+    @PreAuthorize("hasRole('METIER')")
     public ResponseEntity<OffreDTO> retirerService(
             @PathVariable Long offreId,
             @PathVariable Long serviceId) {

@@ -13,6 +13,7 @@ import com.example.telecom.repository.CustomerGroupRepository;
 import com.example.telecom.repository.OffreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Random;
@@ -50,6 +51,13 @@ public class ContratService {
                 .build();
 
         return toDTO(contratRepository.save(contrat));
+    }
+
+    @Transactional
+    public List<ContratDTO> creerLots(List<ContratDTO> dtos) {
+        return dtos.stream()
+                .map(this::creerContrat)
+                .collect(Collectors.toList());
     }
 
     // ✅ Génère un numéro tunisien aléatoire : 216 + 2 chiffres opérateur + 7 chiffres
@@ -177,7 +185,12 @@ public class ContratService {
                 .offre(c.getOffre() != null ? ContratDTO.OffreSummary.builder()
                         .id(c.getOffre().getId())
                         .nom(c.getOffre().getNomOffre())
-
+                        .prixMensuel(c.getOffre().getPlanTarifaire() != null
+                                ? c.getOffre().getPlanTarifaire().getPrixMensuel()
+                                : null)
+                        .description(c.getOffre().getPlanTarifaire() != null
+                                ? c.getOffre().getPlanTarifaire().getDescription()
+                                : null)
                         .build() : null)
                 .build();
     }

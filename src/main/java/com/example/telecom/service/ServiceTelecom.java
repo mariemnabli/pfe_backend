@@ -4,6 +4,7 @@ import com.example.telecom.dto.ServiceDTO;
 import com.example.telecom.entity.Services;
 import com.example.telecom.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,6 +18,13 @@ public class ServiceTelecom {
     public ServiceDTO creer(ServiceDTO dto) {
         Services s = Services.builder().nomService(dto.getNomService()).description(dto.getDescription()).build();
         return toDTO(serviceRepository.save(s));
+    }
+
+    @Transactional
+    public List<ServiceDTO> creerLots(List<ServiceDTO> dtos) {
+        return dtos.stream()
+                .map(this::creer)
+                .collect(Collectors.toList());
     }
 
     public ServiceDTO modifier(Long id, ServiceDTO dto) {

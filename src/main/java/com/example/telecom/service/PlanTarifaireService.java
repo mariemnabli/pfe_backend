@@ -5,6 +5,7 @@ import com.example.telecom.entity.PlanTarifaire;
 import com.example.telecom.repository.PlanTarifaireRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,6 +20,13 @@ public class PlanTarifaireService {
         PlanTarifaire p = PlanTarifaire.builder()
                 .nom(dto.getNom()).prixMensuel(dto.getPrixMensuel()).description(dto.getDescription()).build();
         return toDTO(planTarifaireRepository.save(p));
+    }
+
+    @Transactional
+    public List<PlanTarifaireDTO> creerLots(List<PlanTarifaireDTO> dtos) {
+        return dtos.stream()
+                .map(this::creer)
+                .collect(Collectors.toList());
     }
 
     public PlanTarifaireDTO modifier(Long id, PlanTarifaireDTO dto) {

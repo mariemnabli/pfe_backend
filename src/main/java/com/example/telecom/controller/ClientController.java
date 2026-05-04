@@ -1,7 +1,9 @@
 package com.example.telecom.controller;
 
+import com.example.telecom.dto.BulkImportResponse;
 import com.example.telecom.dto.ClientDTO;
 import com.example.telecom.service.ClientService;
+import com.example.telecom.service.CsvImportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +24,7 @@ import java.util.UUID;
 public class ClientController {
 
     private final ClientService clientService;
+    private final CsvImportService csvImportService;
 
     private static final String UPLOAD_DIR = "uploads/documents/";
 
@@ -119,6 +122,19 @@ public class ClientController {
     @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<ClientDTO> creerJson(@RequestBody ClientDTO dto) {
         return ResponseEntity.ok(clientService.creerClient(dto));
+    }
+
+    @PostMapping("/upload-csv")
+    @PreAuthorize("hasRole('VENTE')")
+    public ResponseEntity<BulkImportResponse<ClientDTO>> uploadCsv(
+            @RequestParam("file") MultipartFile file
+    ) throws IOException {
+        List<ClientDTO> clients = clientService.creerClients(csvImportService.parseClients(file));
+        return ResponseEntity.ok(BulkImportResponse.<ClientDTO>builder()
+                .resourceType("clients")
+                .createdCount(clients.size())
+                .items(clients)
+                .build());
     }
 
     @GetMapping("/{id}")

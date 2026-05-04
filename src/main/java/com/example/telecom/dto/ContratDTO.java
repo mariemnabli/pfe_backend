@@ -53,6 +53,8 @@ public class ContratDTO {
     public static class OffreSummary {
         private Long id;
         private String nom;
+        private Double prixMensuel;
+        private String description;
     }
 
     @Data

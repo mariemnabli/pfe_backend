@@ -1,6 +1,7 @@
 package com.example.telecom.service;
 
 import com.example.telecom.dto.ClientDTO;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.entity.Client;
 import com.example.telecom.entity.CustomerGroup;
 import com.example.telecom.entity.CustomerGroupMember;
@@ -8,6 +9,10 @@ import com.example.telecom.repository.ClientRepository;
 import com.example.telecom.repository.CustomerGroupMemberRepository;
 import com.example.telecom.repository.CustomerGroupRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,8 +111,10 @@ public class ClientService {
                 .orElseThrow(() -> new RuntimeException("Client introuvable : " + id)));
     }
 
-    public List<ClientDTO> getAllClients() {
-        return clientRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+    public PaginatedResponse<ClientDTO> getAllClients(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        Page<ClientDTO> result = clientRepository.findAll(pageable).map(this::toDTO);
+        return buildPaginatedResponse(result);
     }
 
     public void supprimerClient(Long id) {
@@ -229,5 +236,17 @@ public class ClientService {
         }
 
         rattacherAuGroupeSiNecessaire(client, customerGroupId);
+    }
+
+    private PaginatedResponse<ClientDTO> buildPaginatedResponse(Page<ClientDTO> page) {
+        return PaginatedResponse.<ClientDTO>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
     }
 }

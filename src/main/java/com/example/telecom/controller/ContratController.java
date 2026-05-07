@@ -2,6 +2,7 @@ package com.example.telecom.controller;
 
 import com.example.telecom.dto.BulkImportResponse;
 import com.example.telecom.dto.ContratDTO;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.service.ContratService;
 import com.example.telecom.service.CsvImportService;
 import lombok.RequiredArgsConstructor;
@@ -61,8 +62,10 @@ public class ContratController {
 
     @GetMapping
     @PreAuthorize("hasRole('VENTE')")
-    public ResponseEntity<List<ContratDTO>> getAll() {
-        return ResponseEntity.ok(contratService.getAllContrats());
+    public ResponseEntity<PaginatedResponse<ContratDTO>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(contratService.getAllContrats(page, size));
     }
 
     @GetMapping("/client/{clientId}")

@@ -1,6 +1,7 @@
 package com.example.telecom.controller;
 
 import com.example.telecom.dto.BulkImportResponse;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.dto.ServiceDTO;
 import com.example.telecom.service.CsvImportService;
 import com.example.telecom.service.ServiceTelecom;
@@ -55,8 +56,10 @@ public class ServiceController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('METIER','VENTE','EXPLOIT')")
-    public ResponseEntity<List<ServiceDTO>> getAll() {
-        return ResponseEntity.ok(serviceTelecom.getAll());
+    public ResponseEntity<PaginatedResponse<ServiceDTO>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(serviceTelecom.getAll(page, size));
     }
 
     @DeleteMapping("/{id}")

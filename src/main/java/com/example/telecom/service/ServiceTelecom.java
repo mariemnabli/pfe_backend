@@ -1,9 +1,14 @@
 package com.example.telecom.service;
 
 import com.example.telecom.dto.ServiceDTO;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.entity.Services;
 import com.example.telecom.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -40,8 +45,10 @@ public class ServiceTelecom {
                 .orElseThrow(() -> new RuntimeException("Service introuvable : " + id)));
     }
 
-    public List<ServiceDTO> getAll() {
-        return serviceRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+    public PaginatedResponse<ServiceDTO> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        Page<ServiceDTO> result = serviceRepository.findAll(pageable).map(this::toDTO);
+        return buildPaginatedResponse(result);
     }
 
     public void supprimer(Long id) {
@@ -50,5 +57,17 @@ public class ServiceTelecom {
 
     private ServiceDTO toDTO(Services s) {
         return ServiceDTO.builder().id(s.getId()).nomService(s.getNomService()).description(s.getDescription()).build();
+    }
+
+    private PaginatedResponse<ServiceDTO> buildPaginatedResponse(Page<ServiceDTO> page) {
+        return PaginatedResponse.<ServiceDTO>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
     }
 }

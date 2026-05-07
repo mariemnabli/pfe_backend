@@ -2,6 +2,7 @@ package com.example.telecom.service;
 
 import com.example.telecom.dto.PromotionDTO;
 import com.example.telecom.dto.PromotionAssignmentDTO;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.entity.Client;
 import com.example.telecom.entity.Contrat;
 import com.example.telecom.entity.CustomerGroup;
@@ -17,6 +18,10 @@ import com.example.telecom.repository.PromotionAssignmentRepository;
 import com.example.telecom.repository.PromotionRepository;
 import com.example.telecom.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -93,8 +98,10 @@ public class PromotionService {
         return toDTO(promotionRepository.save(promotion));
     }
 
-    public List<PromotionDTO> getAll() {
-        return promotionRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+    public PaginatedResponse<PromotionDTO> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        Page<PromotionDTO> result = promotionRepository.findAll(pageable).map(this::toDTO);
+        return buildPaginatedResponse(result);
     }
 
     public List<PromotionDTO> getByStatut(Promotion.StatutPromotion statut) {
@@ -291,6 +298,18 @@ public class PromotionService {
                 .inheritedToMembers(assignment.isInheritedToMembers())
                 .assignedAt(assignment.getAssignedAt())
                 .target(buildTargetSummary(assignment))
+                .build();
+    }
+
+    private PaginatedResponse<PromotionDTO> buildPaginatedResponse(Page<PromotionDTO> page) {
+        return PaginatedResponse.<PromotionDTO>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
                 .build();
     }
 

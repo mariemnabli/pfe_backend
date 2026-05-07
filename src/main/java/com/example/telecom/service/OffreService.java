@@ -1,6 +1,7 @@
 package com.example.telecom.service;
 
 import com.example.telecom.dto.OffreDTO;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.entity.Offre;
 import com.example.telecom.entity.PlanTarifaire;
 import com.example.telecom.entity.Services;
@@ -8,6 +9,10 @@ import com.example.telecom.repository.OffreRepository;
 import com.example.telecom.repository.PlanTarifaireRepository;
 import com.example.telecom.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,8 +51,10 @@ public class OffreService {
                 .orElseThrow(() -> new RuntimeException("Offre introuvable : " + id)));
     }
 
-    public List<OffreDTO> getAll() {
-        return offreRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+    public PaginatedResponse<OffreDTO> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        Page<OffreDTO> result = offreRepository.findAll(pageable).map(this::toDTO);
+        return buildPaginatedResponse(result);
     }
 
     public void supprimer(Long id) {
@@ -111,6 +118,18 @@ public class OffreService {
                 .serviceIds(o.getServices() != null
                         ? o.getServices().stream().map(Services::getId).collect(Collectors.toList())
                         : List.of())
+                .build();
+    }
+
+    private PaginatedResponse<OffreDTO> buildPaginatedResponse(Page<OffreDTO> page) {
+        return PaginatedResponse.<OffreDTO>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
                 .build();
     }
 }

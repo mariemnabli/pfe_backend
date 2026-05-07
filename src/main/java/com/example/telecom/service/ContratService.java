@@ -1,6 +1,7 @@
 package com.example.telecom.service;
 
 import com.example.telecom.dto.ContratDTO;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.entity.ContractHolderType;
 import com.example.telecom.entity.ContractType;
 import com.example.telecom.entity.Client;
@@ -12,6 +13,10 @@ import com.example.telecom.repository.ContratRepository;
 import com.example.telecom.repository.CustomerGroupRepository;
 import com.example.telecom.repository.OffreRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -128,10 +133,10 @@ public class ContratService {
                 .collect(Collectors.toList());
     }
 
-    public List<ContratDTO> getAllContrats() {
-        return contratRepository.findAll().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+    public PaginatedResponse<ContratDTO> getAllContrats(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        Page<ContratDTO> result = contratRepository.findAll(pageable).map(this::toDTO);
+        return buildPaginatedResponse(result);
     }
 
     // -------------------- Ajouter une offre --------------------
@@ -245,4 +250,16 @@ public class ContratService {
             Client client,
             CustomerGroup customerGroup
     ) {}
+
+    private PaginatedResponse<ContratDTO> buildPaginatedResponse(Page<ContratDTO> page) {
+        return PaginatedResponse.<ContratDTO>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
+    }
 }

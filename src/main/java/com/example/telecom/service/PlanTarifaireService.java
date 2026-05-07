@@ -1,9 +1,14 @@
 package com.example.telecom.service;
 
 import com.example.telecom.dto.PlanTarifaireDTO;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.entity.PlanTarifaire;
 import com.example.telecom.repository.PlanTarifaireRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,8 +48,10 @@ public class PlanTarifaireService {
                 .orElseThrow(() -> new RuntimeException("Plan tarifaire introuvable : " + id)));
     }
 
-    public List<PlanTarifaireDTO> getAll() {
-        return planTarifaireRepository.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+    public PaginatedResponse<PlanTarifaireDTO> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+        Page<PlanTarifaireDTO> result = planTarifaireRepository.findAll(pageable).map(this::toDTO);
+        return buildPaginatedResponse(result);
     }
 
     public void supprimer(Long id) {
@@ -54,5 +61,17 @@ public class PlanTarifaireService {
     private PlanTarifaireDTO toDTO(PlanTarifaire p) {
         return PlanTarifaireDTO.builder()
                 .id(p.getId()).nom(p.getNom()).prixMensuel(p.getPrixMensuel()).description(p.getDescription()).build();
+    }
+
+    private PaginatedResponse<PlanTarifaireDTO> buildPaginatedResponse(Page<PlanTarifaireDTO> page) {
+        return PaginatedResponse.<PlanTarifaireDTO>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
     }
 }

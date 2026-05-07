@@ -1,6 +1,7 @@
 package com.example.telecom.controller;
 
 import com.example.telecom.dto.PromotionAssignmentDTO;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.dto.PromotionDTO;
 import com.example.telecom.entity.Promotion;
 import com.example.telecom.service.PromotionService;
@@ -66,8 +67,10 @@ public class PromotionController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('METIER','EXPLOIT','VENTE')")
-    public ResponseEntity<List<PromotionDTO>> getAll() {
-        return ResponseEntity.ok(promotionService.getAll());
+    public ResponseEntity<PaginatedResponse<PromotionDTO>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(promotionService.getAll(page, size));
     }
 
     @GetMapping("/{id}")

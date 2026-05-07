@@ -1,6 +1,7 @@
 package com.example.telecom.controller;
 
 import com.example.telecom.dto.BulkImportResponse;
+import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.dto.PlanTarifaireDTO;
 import com.example.telecom.service.CsvImportService;
 import com.example.telecom.service.PlanTarifaireService;
@@ -55,8 +56,10 @@ public class PlanTarifaireController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('METIER','VENTE','EXPLOIT')")
-    public ResponseEntity<List<PlanTarifaireDTO>> getAll() {
-        return ResponseEntity.ok(service.getAll());
+    public ResponseEntity<PaginatedResponse<PlanTarifaireDTO>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(service.getAll(page, size));
     }
 
     @DeleteMapping("/{id}")

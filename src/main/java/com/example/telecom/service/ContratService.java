@@ -201,42 +201,52 @@ public class ContratService {
     }
 
     private HolderSelection resolveHolder(ContratDTO dto) {
-        ContractType contractType = dto.getContractType();
-        ContractHolderType holderType = dto.getHolderType();
+        boolean hasClient = dto.getClientId() != null;
+        boolean hasGroup = dto.getCustomerGroupId() != null;
 
-        if (contractType == null && dto.getCustomerGroupId() != null) {
-            contractType = ContractType.ENTERPRISE;
-        } else if (contractType == null) {
-            contractType = ContractType.INDIVIDUAL;
+        if (!hasClient && !hasGroup) {
+            throw new RuntimeException("Il faut renseigner soit clientId soit customerGroupId");
         }
 
-        if (holderType == null && contractType == ContractType.ENTERPRISE) {
-            holderType = ContractHolderType.CUSTOMER_GROUP;
-        } else if (holderType == null) {
-            holderType = ContractHolderType.CUSTOMER;
+        if (hasClient && hasGroup) {
+            throw new RuntimeException("Il faut renseigner soit clientId soit customerGroupId, pas les deux");
         }
 
-        if (contractType == ContractType.INDIVIDUAL && holderType != ContractHolderType.CUSTOMER) {
-            throw new RuntimeException("Un contrat individuel doit etre porte par un client");
+        ContractType inferredContractType = hasGroup ? ContractType.ENTERPRISE : ContractType.INDIVIDUAL;
+        ContractHolderType inferredHolderType = hasGroup
+                ? ContractHolderType.CUSTOMER_GROUP
+                : ContractHolderType.CUSTOMER;
+
+        ContractType contractType = dto.getContractType() != null
+                ? dto.getContractType()
+                : inferredContractType;
+        ContractHolderType holderType = dto.getHolderType() != null
+                ? dto.getHolderType()
+                : inferredHolderType;
+
+        if (contractType != inferredContractType) {
+            throw new RuntimeException(
+                    hasClient
+                            ? "clientId correspond a un contrat individuel"
+                            : "customerGroupId correspond a un contrat entreprise"
+            );
         }
 
-        if (contractType == ContractType.ENTERPRISE && holderType != ContractHolderType.CUSTOMER_GROUP) {
-            throw new RuntimeException("Un contrat entreprise doit etre porte par un groupe");
+        if (holderType != inferredHolderType) {
+            throw new RuntimeException(
+                    hasClient
+                            ? "clientId correspond a holderType=CUSTOMER"
+                            : "customerGroupId correspond a holderType=CUSTOMER_GROUP"
+            );
         }
 
         Client client = null;
         CustomerGroup customerGroup = null;
 
-        if (holderType == ContractHolderType.CUSTOMER) {
-            if (dto.getClientId() == null) {
-                throw new RuntimeException("clientId est obligatoire pour un contrat individuel");
-            }
+        if (hasClient) {
             client = clientRepository.findById(dto.getClientId())
                     .orElseThrow(() -> new RuntimeException("Client introuvable : " + dto.getClientId()));
         } else {
-            if (dto.getCustomerGroupId() == null) {
-                throw new RuntimeException("customerGroupId est obligatoire pour un contrat entreprise");
-            }
             customerGroup = customerGroupRepository.findById(dto.getCustomerGroupId())
                     .orElseThrow(() -> new RuntimeException("Groupe introuvable : " + dto.getCustomerGroupId()));
         }

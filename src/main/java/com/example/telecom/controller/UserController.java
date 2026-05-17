@@ -6,6 +6,7 @@ import com.example.telecom.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -53,6 +54,12 @@ public class UserController {
     @PreAuthorize("hasRole('DSI')")
     public ResponseEntity<List<UserDTO>> getAll() {
         return ResponseEntity.ok(userService.getAllUtilisateurs());
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDTO> me(Authentication authentication) {
+        return ResponseEntity.ok(userService.getCurrentUser(authentication.getName()));
     }
 
     // DSI : Consulter un utilisateur

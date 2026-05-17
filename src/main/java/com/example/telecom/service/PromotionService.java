@@ -9,6 +9,7 @@ import com.example.telecom.entity.CustomerGroup;
 import com.example.telecom.entity.CustomerGroupMember;
 import com.example.telecom.entity.Promotion;
 import com.example.telecom.entity.PromotionAssignment;
+import com.example.telecom.entity.Role;
 import com.example.telecom.entity.User;
 import com.example.telecom.repository.ClientRepository;
 import com.example.telecom.repository.CustomerGroupMemberRepository;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -114,6 +116,7 @@ public class PromotionService {
 
     public PromotionAssignmentDTO assignerPromotion(Long promotionId, PromotionAssignmentDTO dto) {
         Promotion promotion = getPromotion(promotionId);
+        User vendeur = resolveVendeur(dto.getAssignedById());
 
         if (dto.getTargetType() == null) {
             throw new RuntimeException("targetType est obligatoire");
@@ -122,11 +125,13 @@ public class PromotionService {
         PromotionAssignment assignment = PromotionAssignment.builder()
                 .promotion(promotion)
                 .targetType(dto.getTargetType())
-                .status(dto.getStatus() != null ? dto.getStatus() : PromotionAssignment.AssignmentStatus.ACTIVE)
+                .status(PromotionAssignment.AssignmentStatus.SUSPENDED)
+                .validationStatus(PromotionAssignment.ValidationStatus.PENDING)
                 .assignmentMode(dto.getAssignmentMode() != null ? dto.getAssignmentMode() : PromotionAssignment.AssignmentMode.MANUAL)
                 .effectiveStartDate(dto.getEffectiveStartDate() != null ? dto.getEffectiveStartDate() : LocalDate.now())
                 .effectiveEndDate(dto.getEffectiveEndDate())
                 .inheritedToMembers(dto.isInheritedToMembers())
+                .assignedBy(vendeur)
                 .build();
 
         switch (dto.getTargetType()) {
@@ -136,6 +141,35 @@ public class PromotionService {
             default -> throw new RuntimeException("targetType non supporte");
         }
 
+        return toAssignmentDTO(promotionAssignmentRepository.save(assignment));
+    }
+
+    public PromotionAssignmentDTO validerAssignment(Long promotionId, Long assignmentId, Long validateurId) {
+        PromotionAssignment assignment = getAssignment(promotionId, assignmentId);
+        User validateur = resolveExploit(validateurId);
+
+        if (assignment.getValidationStatus() == PromotionAssignment.ValidationStatus.VALIDATED) {
+            throw new RuntimeException("Cette affectation est deja validee");
+        }
+
+        assignment.setValidationStatus(PromotionAssignment.ValidationStatus.VALIDATED);
+        assignment.setStatus(PromotionAssignment.AssignmentStatus.ACTIVE);
+        assignment.setValidatedBy(validateur);
+        assignment.setValidatedAt(LocalDateTime.now());
+        return toAssignmentDTO(promotionAssignmentRepository.save(assignment));
+    }
+
+    public PromotionAssignmentDTO rejeterAssignment(Long promotionId, Long assignmentId, Long validateurId) {
+        PromotionAssignment assignment = getAssignment(promotionId, assignmentId);
+        User validateur = resolveExploit(validateurId);
+
+        if (assignment.getValidationStatus() == PromotionAssignment.ValidationStatus.VALIDATED) {
+            throw new RuntimeException("Impossible de rejeter une affectation deja validee");
+        }
+
+        assignment.setValidationStatus(PromotionAssignment.ValidationStatus.REJECTED);
+        assignment.setValidatedBy(validateur);
+        assignment.setValidatedAt(LocalDateTime.now());
         return toAssignmentDTO(promotionAssignmentRepository.save(assignment));
     }
 
@@ -179,9 +213,9 @@ public class PromotionService {
         Long groupId = contrat.getCustomerGroup() != null ? contrat.getCustomerGroup().getId() : null;
         List<Long> inheritedGroupIds = customerId != null
                 ? customerGroupMemberRepository.findByCustomerIdAndStatus(customerId, CustomerGroupMember.MembershipStatus.ACTIVE)
-                .stream()
-                .map(member -> member.getCustomerGroup().getId())
-                .toList()
+                  .stream()
+                  .map(member -> member.getCustomerGroup().getId())
+                  .toList()
                 : List.of();
 
         Long contractId = contrat.getId();
@@ -193,6 +227,12 @@ public class PromotionService {
     private Promotion getPromotion(Long id) {
         return promotionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Promotion introuvable : " + id));
+    }
+
+    private PromotionAssignment getAssignment(Long promotionId, Long assignmentId) {
+        getPromotion(promotionId);
+        return promotionAssignmentRepository.findByIdAndPromotionId(assignmentId, promotionId)
+                .orElseThrow(() -> new RuntimeException("Affectation introuvable : " + assignmentId));
     }
 
     // Métier: Modifier une promotion
@@ -238,21 +278,21 @@ public class PromotionService {
                 .statut(p.getStatut())
                 .regleEligibilite(p.getRegleEligibilite())
                 .ancienneteMinimale(p.getAncienneteMinimale())
-                .createurId(p.getCreateur()   != null ? p.getCreateur().getId()   : null)
+                .createurId(p.getCreateur() != null ? p.getCreateur().getId() : null)
                 .validateurId(p.getValidateur() != null ? p.getValidateur().getId() : null)
                 // ✅ objets enrichis
                 .createur(p.getCreateur() != null ? PromotionDTO.UserSummary.builder()
-                        .id(p.getCreateur().getId())
-                        .username(p.getCreateur().getUsername())
-                        .email(p.getCreateur().getEmail())
-                        .role(p.getCreateur().getRole().name())
-                        .build() : null)
+                                                    .id(p.getCreateur().getId())
+                                                    .username(p.getCreateur().getUsername())
+                                                    .email(p.getCreateur().getEmail())
+                                                    .role(p.getCreateur().getRole().name())
+                                                    .build() : null)
                 .validateur(p.getValidateur() != null ? PromotionDTO.UserSummary.builder()
-                        .id(p.getValidateur().getId())
-                        .username(p.getValidateur().getUsername())
-                        .email(p.getValidateur().getEmail())
-                        .role(p.getValidateur().getRole().name())
-                        .build() : null)
+                                                        .id(p.getValidateur().getId())
+                                                        .username(p.getValidateur().getUsername())
+                                                        .email(p.getValidateur().getEmail())
+                                                        .role(p.getValidateur().getRole().name())
+                                                        .build() : null)
                 .assignments(promotionAssignmentRepository.findByPromotionId(p.getId()).stream()
                         .map(this::toAssignmentDTO)
                         .collect(Collectors.toList()))
@@ -291,13 +331,19 @@ public class PromotionService {
                 .targetCustomerId(assignment.getTargetCustomer() != null ? assignment.getTargetCustomer().getId() : null)
                 .targetGroupId(assignment.getTargetGroup() != null ? assignment.getTargetGroup().getId() : null)
                 .targetContractId(assignment.getTargetContract() != null ? assignment.getTargetContract().getId() : null)
+                .assignedById(assignment.getAssignedBy() != null ? assignment.getAssignedBy().getId() : null)
+                .validatedById(assignment.getValidatedBy() != null ? assignment.getValidatedBy().getId() : null)
                 .status(assignment.getStatus())
+                .validationStatus(assignment.getValidationStatus())
                 .assignmentMode(assignment.getAssignmentMode())
                 .effectiveStartDate(assignment.getEffectiveStartDate())
                 .effectiveEndDate(assignment.getEffectiveEndDate())
                 .inheritedToMembers(assignment.isInheritedToMembers())
                 .assignedAt(assignment.getAssignedAt())
+                .validatedAt(assignment.getValidatedAt())
                 .target(buildTargetSummary(assignment))
+                .assignedBy(buildUserSummary(assignment.getAssignedBy()))
+                .validatedBy(buildUserSummary(assignment.getValidatedBy()))
                 .build();
     }
 
@@ -347,6 +393,9 @@ public class PromotionService {
         if (assignment.getStatus() != PromotionAssignment.AssignmentStatus.ACTIVE) {
             return false;
         }
+        if (assignment.getValidationStatus() != PromotionAssignment.ValidationStatus.VALIDATED) {
+            return false;
+        }
 
         LocalDate today = LocalDate.now();
         if (assignment.getEffectiveStartDate() != null && today.isBefore(assignment.getEffectiveStartDate())) {
@@ -380,5 +429,38 @@ public class PromotionService {
         return inheritedGroupIds != null
                 && inheritedGroupIds.contains(targetGroupId)
                 && assignment.isInheritedToMembers();
+    }
+
+    private User resolveVendeur(Long vendeurId) {
+        if (vendeurId == null) {
+            throw new RuntimeException("assignedById est obligatoire");
+        }
+        User vendeur = userRepository.findById(vendeurId)
+                .orElseThrow(() -> new RuntimeException("Vendeur introuvable : " + vendeurId));
+        if (vendeur.getRole() != Role.VENTE) {
+            throw new RuntimeException("assignedById doit referencer un utilisateur VENTE");
+        }
+        return vendeur;
+    }
+
+    private User resolveExploit(Long validateurId) {
+        User validateur = userRepository.findById(validateurId)
+                .orElseThrow(() -> new RuntimeException("Validateur introuvable : " + validateurId));
+        if (validateur.getRole() != Role.EXPLOIT) {
+            throw new RuntimeException("validateurId doit referencer un utilisateur EXPLOIT");
+        }
+        return validateur;
+    }
+
+    private PromotionAssignmentDTO.UserSummary buildUserSummary(User user) {
+        if (user == null) {
+            return null;
+        }
+        return PromotionAssignmentDTO.UserSummary.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole() != null ? user.getRole().name() : null)
+                .build();
     }
 }

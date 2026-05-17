@@ -2,6 +2,7 @@ package com.example.telecom.service;
 
 import com.example.telecom.dto.ClientDTO;
 import com.example.telecom.dto.ContratDTO;
+import com.example.telecom.dto.DirectoryNumberDTO;
 import com.example.telecom.dto.OffreDTO;
 import com.example.telecom.dto.PlanTarifaireDTO;
 import com.example.telecom.dto.ServiceDTO;
@@ -97,6 +98,24 @@ public class CsvImportService {
         }
 
         return plans;
+    }
+
+    public List<DirectoryNumberDTO> parseDirectoryNumbers(MultipartFile file) throws IOException {
+        List<Map<String, String>> rows = readCsv(file);
+        List<DirectoryNumberDTO> directoryNumbers = new ArrayList<>();
+
+        for (Map<String, String> row : rows) {
+            DirectoryNumberDTO dto = new DirectoryNumberDTO();
+            dto.setNumero(parseLong(required(row, "numero"), "numero"));
+            dto.setStatus(optional(row, "status"));
+            dto.setDateActivation(parseDate(optional(row, "dateactivation"), "dateActivation"));
+            dto.setDateDesactivation(parseDate(optional(row, "datedesactivation"), "dateDesactivation"));
+            dto.setContratId(parseLong(optional(row, "contratid"), "contratId"));
+            dto.setContractId(optional(row, "contractid"));
+            directoryNumbers.add(dto);
+        }
+
+        return directoryNumbers;
     }
 
     public List<ServiceDTO> parseServices(MultipartFile file) throws IOException {

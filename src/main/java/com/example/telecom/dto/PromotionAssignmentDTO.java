@@ -18,13 +18,19 @@ public class PromotionAssignmentDTO {
     private Long targetCustomerId;
     private Long targetGroupId;
     private Long targetContractId;
+    private Long assignedById;
+    private Long validatedById;
     private PromotionAssignment.AssignmentStatus status;
+    private PromotionAssignment.ValidationStatus validationStatus;
     private PromotionAssignment.AssignmentMode assignmentMode;
     private LocalDate effectiveStartDate;
     private LocalDate effectiveEndDate;
     private boolean inheritedToMembers;
     private LocalDateTime assignedAt;
+    private LocalDateTime validatedAt;
     private TargetSummary target;
+    private UserSummary assignedBy;
+    private UserSummary validatedBy;
 
     @Getter
     @Setter
@@ -35,5 +41,17 @@ public class PromotionAssignmentDTO {
         private String type;
         private Long id;
         private String label;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class UserSummary {
+        private Long id;
+        private String username;
+        private String email;
+        private String role;
     }
 }

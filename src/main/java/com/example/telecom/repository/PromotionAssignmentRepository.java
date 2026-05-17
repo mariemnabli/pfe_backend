@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface PromotionAssignmentRepository extends JpaRepository<PromotionAssignment, Long> {
     List<PromotionAssignment> findByPromotionId(Long promotionId);
+    java.util.Optional<PromotionAssignment> findByIdAndPromotionId(Long id, Long promotionId);
 
     List<PromotionAssignment> findByTargetCustomerId(Long customerId);
 

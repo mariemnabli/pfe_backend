@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -32,8 +33,6 @@ public class Contrat {
     @Enumerated(EnumType.STRING)
     private StatutContrat statut = StatutContrat.ACTIF;
 
-    private Number directoryNumber;
-
     @ManyToOne
     @JoinColumn(name = "client_id")
     private Client client;
@@ -46,6 +45,10 @@ public class Contrat {
     @JoinColumn(name = "offre_id")
     private Offre offre;
 
+    @OneToMany(mappedBy = "contrat", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @JsonIgnore
+    private List<DirectoryNumber> directoryNumbers = new ArrayList<>();
 
     @OneToMany(mappedBy = "contrat", cascade = CascadeType.ALL)
     @JsonIgnore

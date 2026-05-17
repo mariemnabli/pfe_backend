@@ -85,6 +85,17 @@ public class UserService {
         return toDTO(getUser(id));
     }
 
+    public UserDTO getCurrentUser(String email) {
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("Utilisateur connecte introuvable");
+        }
+
+        User user = userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable : " + email));
+
+        return toDTO(user);
+    }
+
     // ── Privé : récupérer entité User ──────────────────────────
     private User getUser(Long id) {
         return userRepository.findById(id)

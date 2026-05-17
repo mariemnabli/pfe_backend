@@ -3,6 +3,8 @@ package com.example.telecom.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,10 +33,12 @@ public class Promotion {
 
     @ManyToOne
     @JoinColumn(name = "createur_id")
+    @NotFound(action = NotFoundAction.IGNORE)
     private User createur;
 
     @ManyToOne
     @JoinColumn(name = "validateur_id")
+    @NotFound(action = NotFoundAction.IGNORE)
     private User validateur;
 
     @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL)

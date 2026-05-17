@@ -127,13 +127,13 @@ Roles: `METIER`
 
 `POST /api/promotions/5/assignments`
 
-Roles: `METIER`, `EXPLOIT`
+Roles: `VENTE`
 
 ```json
 {
   "targetType": "CUSTOMER",
   "targetCustomerId": 12,
-  "status": "ACTIVE",
+  "assignedById": 7,
   "assignmentMode": "MANUAL",
   "effectiveStartDate": "2026-05-01",
   "effectiveEndDate": "2026-12-31",
@@ -141,17 +141,19 @@ Roles: `METIER`, `EXPLOIT`
 }
 ```
 
+The assignment is created with `status = SUSPENDED` and `validationStatus = PENDING`. It becomes `ACTIVE` only after an `EXPLOIT` user validates it.
+
 ## 9. Assign a promotion to a customer group
 
 `POST /api/promotions/5/assignments`
 
-Roles: `METIER`, `EXPLOIT`
+Roles: `VENTE`
 
 ```json
 {
   "targetType": "CUSTOMER_GROUP",
   "targetGroupId": 1,
-  "status": "ACTIVE",
+  "assignedById": 7,
   "assignmentMode": "MANUAL",
   "effectiveStartDate": "2026-05-01",
   "effectiveEndDate": "2026-12-31",
@@ -163,13 +165,13 @@ Roles: `METIER`, `EXPLOIT`
 
 `POST /api/promotions/5/assignments`
 
-Roles: `METIER`, `EXPLOIT`
+Roles: `VENTE`
 
 ```json
 {
   "targetType": "CONTRACT",
   "targetContractId": 9,
-  "status": "ACTIVE",
+  "assignedById": 7,
   "assignmentMode": "MANUAL",
   "effectiveStartDate": "2026-05-01",
   "effectiveEndDate": "2026-12-31",
@@ -177,7 +179,90 @@ Roles: `METIER`, `EXPLOIT`
 }
 ```
 
-## 11. Validate and activate a promotion
+## 11. Validate a promotion assignment
+
+`PUT /api/promotions/5/assignments/14/valider?validateurId=3`
+
+Roles: `EXPLOIT`
+
+Body: empty
+
+## 12. Reject a promotion assignment
+
+`PUT /api/promotions/5/assignments/14/rejeter?validateurId=3`
+
+Roles: `EXPLOIT`
+
+Body: empty
+
+## 13. Validate and activate a promotion
+
+## 14. List all directory numbers
+
+`GET /api/directory-numbers?page=0&size=10`
+
+Roles: `VENTE`, `EXPLOIT`, `DSI`
+
+## 12.bis Create a directory number
+
+`POST /api/directory-numbers`
+
+Roles: `VENTE`, `EXPLOIT`, `DSI`
+
+Body example:
+
+```json
+{
+  "numero": 216531234567,
+  "status": "ACTIF",
+  "contratId": 12
+}
+```
+
+Rules:
+
+- `numero` is mandatory
+- if no contract is provided, the default status is `LIBRE`
+- if a contract is provided and `status` is omitted, the default status is `ACTIF`
+- `ACTIF` and `DESACTIVE` require `contratId` or `contractId`
+
+## 13. List directory numbers by status
+
+`GET /api/directory-numbers?status=ACTIF&page=0&size=10`
+
+Accepted values for `status`: `LIBRE`, `ACTIF`, `DESACTIVE`
+
+## 14. Import directory numbers from CSV
+
+`POST /api/directory-numbers/upload-csv`
+
+Roles: `VENTE`, `EXPLOIT`, `DSI`
+
+Expected CSV header:
+
+```text
+numero
+216201234567
+216531234567
+```
+
+Imported numbers are created with status `LIBRE`.
+
+Optional columns are also supported:
+
+```text
+numero,status,dateActivation,dateDesactivation,contratId,contractId
+216201234567,LIBRE,,,,
+216531234567,ACTIF,2026-05-01,,12,
+216541234567,DESACTIVE,2026-04-01,2026-05-10,,CTR-000012
+```
+
+Rules:
+
+- `numero` is mandatory
+- if `contratId` or `contractId` is provided, the imported directory number is linked to that contract
+- if `status` is omitted, it defaults to `LIBRE` without contract, or `ACTIF` with contract
+- `ACTIF` and `DESACTIVE` require a linked contract
 
 `PUT /api/promotions/5/valider?validateurId=3`
 
@@ -225,3 +310,13 @@ Roles: `VENTE`
 - Define `{{token}}` with a JWT obtained from `/api/auth/login`
 - Add `Authorization: Bearer {{token}}` on secured requests
 - Use one login per role when testing `DSI`, `METIER`, `EXPLOIT`, `VENTE`
+
+## Current authenticated user
+
+`GET /api/users/me`
+
+Roles: authenticated user
+
+Headers:
+
+- `Authorization: Bearer {{token}}`

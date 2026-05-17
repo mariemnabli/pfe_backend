@@ -2,15 +2,17 @@ package com.example.telecom.service;
 
 import com.example.telecom.dto.ContratDTO;
 import com.example.telecom.dto.PaginatedResponse;
+import com.example.telecom.entity.Client;
 import com.example.telecom.entity.ContractHolderType;
 import com.example.telecom.entity.ContractType;
-import com.example.telecom.entity.Client;
 import com.example.telecom.entity.Contrat;
 import com.example.telecom.entity.CustomerGroup;
+import com.example.telecom.entity.DirectoryNumber;
 import com.example.telecom.entity.Offre;
 import com.example.telecom.repository.ClientRepository;
 import com.example.telecom.repository.ContratRepository;
 import com.example.telecom.repository.CustomerGroupRepository;
+import com.example.telecom.repository.DirectoryNumberRepository;
 import com.example.telecom.repository.OffreRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class ContratService {
 
     private final ContratRepository contratRepository;
     private final ClientRepository clientRepository;
+    private final DirectoryNumberRepository directoryNumberRepository;
     private final CustomerGroupRepository customerGroupRepository;
     private final OffreRepository offreRepository;
 
@@ -37,10 +40,6 @@ public class ContratService {
         HolderSelection holder = resolveHolder(dto);
         Offre offre = offreRepository.findById(dto.getOffreId())
                 .orElseThrow(() -> new RuntimeException("Offre introuvable : " + dto.getOffreId()));
-
-        Number directoryNumber = dto.getDirectoryNumber() != null
-                ? dto.getDirectoryNumber()
-                : genererDirectoryNumber();
 
         Contrat contrat = Contrat.builder()
                 .contractId(genererContractId())
@@ -52,10 +51,11 @@ public class ContratService {
                 .client(holder.client())
                 .customerGroup(holder.customerGroup())
                 .offre(offre)
-                .directoryNumber(directoryNumber)
                 .build();
 
-        return toDTO(contratRepository.save(contrat));
+        Contrat saved = contratRepository.save(contrat);
+        assignerDirectoryNumber(saved, dto.getDirectoryNumber());
+        return toDTO(saved);
     }
 
     @Transactional
@@ -66,14 +66,17 @@ public class ContratService {
     }
 
     // ✅ Génère un numéro tunisien aléatoire : 216 + 2 chiffres opérateur + 7 chiffres
-    private Number genererDirectoryNumber() {
+    private Long genererDirectoryNumber() {
         // Préfixes opérateurs tunisiens : 20-29, 50-59, 90-99
         int[] prefixes = {20, 21, 22, 23, 25, 50, 52, 53, 55, 58, 90, 92, 94, 97, 98};
         Random random = new Random();
-        int prefix = prefixes[random.nextInt(prefixes.length)];
-        int suffix = 1000000 + random.nextInt(9000000); // 7 chiffres
-        // Format : 216XXXXXXXXX (sans le +)
-        return Long.parseLong("216" + prefix + suffix);
+        long candidate;
+        do {
+            int prefix = prefixes[random.nextInt(prefixes.length)];
+            int suffix = 1000000 + random.nextInt(9000000); // 7 chiffres
+            candidate = Long.parseLong("216" + prefix + suffix);
+        } while (directoryNumberRepository.existsByNumero(candidate));
+        return candidate;
     }
 
     // -------------------- Modification --------------------
@@ -85,10 +88,6 @@ public class ContratService {
         if (dto.getDateDebut() != null) contrat.setDateDebut(dto.getDateDebut());
         if (dto.getDateFin()   != null) contrat.setDateFin(dto.getDateFin());
         if (dto.getStatut()    != null) contrat.setStatut(dto.getStatut());
-
-        // ✅ Directory number
-        if (dto.getDirectoryNumber() != null)
-            contrat.setDirectoryNumber(dto.getDirectoryNumber());
 
         if (dto.getClientId() != null || dto.getCustomerGroupId() != null || dto.getContractType() != null || dto.getHolderType() != null) {
             HolderSelection holder = resolveHolder(dto);
@@ -104,7 +103,14 @@ public class ContratService {
             contrat.setOffre(offre);
         }
 
-        return toDTO(contratRepository.save(contrat));
+        Contrat saved = contratRepository.save(contrat);
+        if (dto.getDirectoryNumber() != null) {
+            remplacerDirectoryNumberActif(saved, dto.getDirectoryNumber());
+        }
+        if (dto.getStatut() == Contrat.StatutContrat.RESILIE) {
+            desactiverDirectoryNumberActif(saved);
+        }
+        return toDTO(saved);
     }
 
     // -------------------- Résiliation --------------------
@@ -112,7 +118,9 @@ public class ContratService {
         Contrat contrat = contratRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Contrat introuvable : " + id));
         contrat.setStatut(Contrat.StatutContrat.RESILIE);
-        return toDTO(contratRepository.save(contrat));
+        Contrat saved = contratRepository.save(contrat);
+        desactiverDirectoryNumberActif(saved);
+        return toDTO(saved);
     }
 
     // -------------------- Récupération --------------------
@@ -170,7 +178,7 @@ public class ContratService {
                 .dateDebut(c.getDateDebut())
                 .dateFin(c.getDateFin())
                 .statut(c.getStatut())
-                .directoryNumber(c.getDirectoryNumber())
+                .directoryNumber(resolveDirectoryNumber(c))
                 .clientId(c.getClient() != null ? c.getClient().getId() : null)
                 .customerGroupId(c.getCustomerGroup() != null ? c.getCustomerGroup().getId() : null)
                 .offreId(c.getOffre()  != null ? c.getOffre().getId()  : null)
@@ -260,6 +268,57 @@ public class ContratService {
             Client client,
             CustomerGroup customerGroup
     ) {}
+
+    private Long resolveDirectoryNumber(Contrat contrat) {
+        return directoryNumberRepository
+                .findFirstByContratIdAndStatusOrderByIdDesc(
+                        contrat.getId(),
+                        DirectoryNumber.DirectoryNumberStatus.ACTIF
+                )
+                .map(DirectoryNumber::getNumero)
+                .orElseGet(() -> directoryNumberRepository.findByContratIdOrderByIdDesc(contrat.getId())
+                        .stream()
+                        .findFirst()
+                        .map(DirectoryNumber::getNumero)
+                        .orElse(null));
+    }
+
+    private void assignerDirectoryNumber(Contrat contrat, Number requestedDirectoryNumber) {
+        Long numero = requestedDirectoryNumber != null
+                ? requestedDirectoryNumber.longValue()
+                : genererDirectoryNumber();
+
+        DirectoryNumber directoryNumber = directoryNumberRepository.findByNumero(numero).orElse(null);
+        if (directoryNumber == null) {
+            directoryNumber = DirectoryNumber.builder()
+                    .numero(numero)
+                    .contrat(contrat)
+                    .build();
+        } else if (directoryNumber.getStatus() != DirectoryNumber.DirectoryNumberStatus.LIBRE) {
+            throw new RuntimeException("Ce directory number n'est pas disponible : " + numero);
+        }
+
+        directoryNumber.setContrat(contrat);
+        directoryNumber.setStatus(DirectoryNumber.DirectoryNumberStatus.ACTIF);
+        directoryNumber.setDateActivation(contrat.getDateDebut() != null ? contrat.getDateDebut() : java.time.LocalDate.now());
+        directoryNumber.setDateDesactivation(null);
+        directoryNumberRepository.save(directoryNumber);
+    }
+
+    private void remplacerDirectoryNumberActif(Contrat contrat, Number requestedDirectoryNumber) {
+        desactiverDirectoryNumberActif(contrat);
+        assignerDirectoryNumber(contrat, requestedDirectoryNumber);
+    }
+
+    private void desactiverDirectoryNumberActif(Contrat contrat) {
+        directoryNumberRepository
+                .findFirstByContratIdAndStatusOrderByIdDesc(contrat.getId(), DirectoryNumber.DirectoryNumberStatus.ACTIF)
+                .ifPresent(directoryNumber -> {
+                    directoryNumber.setStatus(DirectoryNumber.DirectoryNumberStatus.DESACTIVE);
+                    directoryNumber.setDateDesactivation(contrat.getDateFin() != null ? contrat.getDateFin() : java.time.LocalDate.now());
+                    directoryNumberRepository.save(directoryNumber);
+                });
+    }
 
     private PaginatedResponse<ContratDTO> buildPaginatedResponse(Page<ContratDTO> page) {
         return PaginatedResponse.<ContratDTO>builder()

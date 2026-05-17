@@ -2,6 +2,8 @@ package com.example.telecom.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,10 +41,25 @@ public class PromotionAssignment {
     @JoinColumn(name = "target_contract_id")
     private Contrat targetContract;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_by_id")
+    @NotFound(action = NotFoundAction.IGNORE)
+    private User assignedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "validated_by_id")
+    @NotFound(action = NotFoundAction.IGNORE)
+    private User validatedBy;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private AssignmentStatus status = AssignmentStatus.ACTIVE;
+    private AssignmentStatus status = AssignmentStatus.SUSPENDED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "validation_status", nullable = false)
+    @Builder.Default
+    private ValidationStatus validationStatus = ValidationStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -60,6 +77,8 @@ public class PromotionAssignment {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime assignedAt;
+
+    private LocalDateTime validatedAt;
 
     @PrePersist
     public void prePersist() {
@@ -85,5 +104,11 @@ public class PromotionAssignment {
         MANUAL,
         AUTOMATIC,
         MIGRATED
+    }
+
+    public enum ValidationStatus {
+        PENDING,
+        VALIDATED,
+        REJECTED
     }
 }

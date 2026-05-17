@@ -86,10 +86,26 @@ public class PromotionController {
     }
 
     @PostMapping("/{id}/assignments")
-    @PreAuthorize("hasAnyRole('METIER','VENTE','EXPLOIT')")
+    @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<PromotionAssignmentDTO> assignerPromotion(@PathVariable Long id,
                                                                     @RequestBody PromotionAssignmentDTO dto) {
         return ResponseEntity.ok(promotionService.assignerPromotion(id, dto));
+    }
+
+    @PutMapping("/{id}/assignments/{assignmentId}/valider")
+    @PreAuthorize("hasRole('EXPLOIT')")
+    public ResponseEntity<PromotionAssignmentDTO> validerAssignment(@PathVariable Long id,
+                                                                    @PathVariable Long assignmentId,
+                                                                    @RequestParam Long validateurId) {
+        return ResponseEntity.ok(promotionService.validerAssignment(id, assignmentId, validateurId));
+    }
+
+    @PutMapping("/{id}/assignments/{assignmentId}/rejeter")
+    @PreAuthorize("hasRole('EXPLOIT')")
+    public ResponseEntity<PromotionAssignmentDTO> rejeterAssignment(@PathVariable Long id,
+                                                                    @PathVariable Long assignmentId,
+                                                                    @RequestParam Long validateurId) {
+        return ResponseEntity.ok(promotionService.rejeterAssignment(id, assignmentId, validateurId));
     }
 
     @GetMapping("/{id}/assignments")

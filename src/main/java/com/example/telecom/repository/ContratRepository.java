@@ -13,6 +13,7 @@ public interface ContratRepository extends JpaRepository<Contrat, Long> {
     List<Contrat> findByClientId(Long clientId);
     List<Contrat> findByCustomerGroupId(Long customerGroupId);
     List<Contrat> findByStatut(Contrat.StatutContrat statut);
+    Optional<Contrat> findByContractId(String contractId);
 
     @Query("SELECT MAX(c.id) FROM Contrat c")
     Optional<Long> findMaxId();

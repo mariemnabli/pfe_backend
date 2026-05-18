@@ -3,6 +3,7 @@ package com.example.telecom.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +31,17 @@ public class Client {
     private String adresse;
     private String ville;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ClientStatus status = ClientStatus.ACTIVE;
+
+    @Column(name = "date_activation")
+    private LocalDate dateActivation;
+
+    @Column(name = "date_desactivation")
+    private LocalDate dateDesactivation;
+
     // 1 = CIN  |  2 = PASSPORT
     @Column(name = "document_type", nullable = false)
     private Integer documentType;
@@ -54,4 +66,9 @@ public class Client {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<CustomerGroupMember> groupMemberships = new ArrayList<>();
+
+    public enum ClientStatus {
+        ACTIVE,
+        DESACTIVE
+    }
 }

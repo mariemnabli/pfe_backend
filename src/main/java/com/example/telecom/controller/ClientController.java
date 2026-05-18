@@ -43,6 +43,7 @@ public class ClientController {
             @RequestParam("email") String email,
             @RequestParam("adresse") String adresse,
             @RequestParam("ville") String ville,
+            @RequestParam(value = "status", required = false) String status,
             @RequestParam("documentType") Integer documentType,
             @RequestParam(value = "customerGroupId", required = false) String customerGroupId,
             @RequestParam(value = "cinNumber", required = false) String cinNumber,
@@ -57,6 +58,7 @@ public class ClientController {
         dto.setEmail(email);
         dto.setAdresse(adresse);
         dto.setVille(ville);
+        dto.setStatus(status);
         dto.setDocumentType(documentType);
         dto.setCustomerGroupId(parseNullableLong(customerGroupId, "customerGroupId"));
 
@@ -86,6 +88,7 @@ public class ClientController {
             @RequestParam("email") String email,
             @RequestParam("adresse") String adresse,
             @RequestParam("ville") String ville,
+            @RequestParam(value = "status", required = false) String status,
             @RequestParam("documentType") Integer documentType,
             @RequestParam(value = "customerGroupId", required = false) String customerGroupId,
             @RequestParam(value = "cinNumber", required = false) String cinNumber,
@@ -100,6 +103,7 @@ public class ClientController {
         dto.setEmail(email);
         dto.setAdresse(adresse);
         dto.setVille(ville);
+        dto.setStatus(status);
         dto.setDocumentType(documentType);
         dto.setCustomerGroupId(parseNullableLong(customerGroupId, "customerGroupId"));
 

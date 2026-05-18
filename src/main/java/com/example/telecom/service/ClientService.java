@@ -16,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,6 +40,9 @@ public class ClientService {
                 .email(dto.getEmail())
                 .adresse(dto.getAdresse())
                 .ville(dto.getVille())
+                .status(resolveStatus(dto.getStatus()))
+                .dateActivation(resolveInitialActivationDate(dto.getStatus()))
+                .dateDesactivation(resolveInitialDeactivationDate(dto.getStatus()))
                 .documentType(dto.getDocumentType())
                 .build();
 
@@ -83,6 +87,7 @@ public class ClientService {
         client.setAdresse(dto.getAdresse());
         client.setVille(dto.getVille());
         client.setDocumentType(dto.getDocumentType());
+        applyStatusTransition(client, resolveStatus(dto.getStatus()));
 
         // Réinitialiser les champs de l'ancien document
         client.setCinNumber(null);
@@ -163,6 +168,9 @@ public class ClientService {
                 .email(c.getEmail())
                 .adresse(c.getAdresse())
                 .ville(c.getVille())
+                .status(c.getStatus() != null ? c.getStatus().name() : null)
+                .dateActivation(c.getDateActivation())
+                .dateDesactivation(c.getDateDesactivation())
                 .documentType(c.getDocumentType())
                 .cinNumber(c.getCinNumber())
                 .cinImagePath(c.getCinImagePath())
@@ -191,6 +199,46 @@ public class ClientService {
                 .ifPresent(client -> {
                     throw new RuntimeException("Ce numéro de passport existe déjà : " + passportNumber);
                 });
+    }
+
+    private Client.ClientStatus resolveStatus(String rawStatus) {
+        if (rawStatus == null || rawStatus.isBlank()) {
+            return Client.ClientStatus.ACTIVE;
+        }
+
+        try {
+            return Client.ClientStatus.valueOf(rawStatus.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new RuntimeException("Status client invalide. Valeurs acceptées : ACTIVE ou DESACTIVE");
+        }
+    }
+
+    private LocalDate resolveInitialActivationDate(String rawStatus) {
+        return resolveStatus(rawStatus) == Client.ClientStatus.ACTIVE ? LocalDate.now() : null;
+    }
+
+    private LocalDate resolveInitialDeactivationDate(String rawStatus) {
+        return resolveStatus(rawStatus) == Client.ClientStatus.DESACTIVE ? LocalDate.now() : null;
+    }
+
+    private void applyStatusTransition(Client client, Client.ClientStatus newStatus) {
+        Client.ClientStatus currentStatus = client.getStatus() != null ? client.getStatus() : Client.ClientStatus.ACTIVE;
+        client.setStatus(newStatus);
+
+        if (currentStatus == newStatus) {
+            return;
+        }
+
+        if (newStatus == Client.ClientStatus.ACTIVE) {
+            client.setDateActivation(LocalDate.now());
+            client.setDateDesactivation(null);
+            return;
+        }
+
+        client.setDateDesactivation(LocalDate.now());
+        if (client.getDateActivation() == null) {
+            client.setDateActivation(LocalDate.now());
+        }
     }
 
     private void rattacherAuGroupeSiNecessaire(Client client, Long customerGroupId) {

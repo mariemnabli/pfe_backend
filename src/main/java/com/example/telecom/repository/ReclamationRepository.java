@@ -6,5 +6,6 @@ import java.util.List;
 
 public interface ReclamationRepository extends JpaRepository<Reclamation, Long> {
     List<Reclamation> findByClientId(Long clientId);
+    List<Reclamation> findByCustomerGroupId(Long customerGroupId);
     List<Reclamation> findByStatut(Reclamation.StatutReclamation statut);
 }

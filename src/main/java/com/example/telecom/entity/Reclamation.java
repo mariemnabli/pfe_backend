@@ -23,10 +23,15 @@ public class Reclamation {
     private LocalDateTime dateMiseAJour;
 
     private String commentaireVendeur;
+    private String commentaireDsi;
 
     @ManyToOne
     @JoinColumn(name = "client_id")
     private Client client;
+
+    @ManyToOne
+    @JoinColumn(name = "customer_group_id")
+    private CustomerGroup customerGroup;
 
     @PrePersist
     public void prePersist() {

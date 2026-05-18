@@ -202,4 +202,34 @@ public class EmailService {
 
         envoyerEmail(destinataire, sujet, contenu);
     }
+
+    public void envoyerReponseReclamation(String destinataire, String nomClient,
+                                          String descriptionReclamation, String reponseDsi,
+                                          String statut) {
+        String sujet = "Réponse à votre réclamation";
+        String contenu = """
+            <html>
+            <body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:30px;">
+              <div style="max-width:600px;margin:auto;background:#fff;
+                          border-radius:8px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                <h2 style="color:#1a73e8;">Réponse du DSI à votre réclamation</h2>
+                <p>Bonjour <strong>%s</strong>,</p>
+                <p>Votre réclamation a été traitée par le DSI.</p>
+                <div style="background:#f8f9fa;border-left:4px solid #1a73e8;
+                            padding:15px;border-radius:4px;margin:20px 0;">
+                  <p style="margin:0 0 10px 0;"><strong>Réclamation :</strong> %s</p>
+                  <p style="margin:0 0 10px 0;"><strong>Réponse du DSI :</strong> %s</p>
+                  <p style="margin:0;"><strong>Statut :</strong> %s</p>
+                </div>
+                <hr style="border:none;border-top:1px solid #eee;margin:30px 0;">
+                <p style="color:#aaa;font-size:12px;text-align:center;">
+                  Portail Télécom — Ne pas répondre à cet email
+                </p>
+              </div>
+            </body>
+            </html>
+            """.formatted(nomClient, descriptionReclamation, reponseDsi, statut != null ? statut : "-");
+
+        envoyerEmail(destinataire, sujet, contenu);
+    }
 }

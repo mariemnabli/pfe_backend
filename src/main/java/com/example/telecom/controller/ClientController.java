@@ -37,17 +37,17 @@ public class ClientController {
     @PostMapping
     @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<ClientDTO> creer(
-            @RequestParam("nom")          String nom,
-            @RequestParam("prenom")       String prenom,
-            @RequestParam("telephone")    String telephone,
-            @RequestParam("email")        String email,
-            @RequestParam("adresse")      String adresse,
-            @RequestParam("ville")        String ville,
+            @RequestParam("nom") String nom,
+            @RequestParam("prenom") String prenom,
+            @RequestParam("telephone") String telephone,
+            @RequestParam("email") String email,
+            @RequestParam("adresse") String adresse,
+            @RequestParam("ville") String ville,
             @RequestParam("documentType") Integer documentType,
-            @RequestParam(value = "customerGroupId", required = false) Long customerGroupId,
-            @RequestParam(value = "cinNumber",       required = false) String cinNumber,
-            @RequestParam(value = "passportNumber",  required = false) String passportNumber,
-            @RequestParam(value = "image",           required = false) MultipartFile image
+            @RequestParam(value = "customerGroupId", required = false) String customerGroupId,
+            @RequestParam(value = "cinNumber", required = false) String cinNumber,
+            @RequestParam(value = "passportNumber", required = false) String passportNumber,
+            @RequestParam(value = "image", required = false) MultipartFile image
     ) throws IOException {
 
         ClientDTO dto = new ClientDTO();
@@ -58,7 +58,7 @@ public class ClientController {
         dto.setAdresse(adresse);
         dto.setVille(ville);
         dto.setDocumentType(documentType);
-        dto.setCustomerGroupId(customerGroupId);
+        dto.setCustomerGroupId(parseNullableLong(customerGroupId, "customerGroupId"));
 
         if (documentType == 1) {
             dto.setCinNumber(cinNumber);
@@ -79,18 +79,18 @@ public class ClientController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('VENTE')")
     public ResponseEntity<ClientDTO> modifier(
-            @PathVariable            Long id,
-            @RequestParam("nom")          String nom,
-            @RequestParam("prenom")       String prenom,
-            @RequestParam("telephone")    String telephone,
-            @RequestParam("email")        String email,
-            @RequestParam("adresse")      String adresse,
-            @RequestParam("ville")        String ville,
+            @PathVariable Long id,
+            @RequestParam("nom") String nom,
+            @RequestParam("prenom") String prenom,
+            @RequestParam("telephone") String telephone,
+            @RequestParam("email") String email,
+            @RequestParam("adresse") String adresse,
+            @RequestParam("ville") String ville,
             @RequestParam("documentType") Integer documentType,
-            @RequestParam(value = "customerGroupId", required = false) Long customerGroupId,
-            @RequestParam(value = "cinNumber",       required = false) String cinNumber,
-            @RequestParam(value = "passportNumber",  required = false) String passportNumber,
-            @RequestParam(value = "image",           required = false) MultipartFile image
+            @RequestParam(value = "customerGroupId", required = false) String customerGroupId,
+            @RequestParam(value = "cinNumber", required = false) String cinNumber,
+            @RequestParam(value = "passportNumber", required = false) String passportNumber,
+            @RequestParam(value = "image", required = false) MultipartFile image
     ) throws IOException {
 
         ClientDTO dto = new ClientDTO();
@@ -101,7 +101,7 @@ public class ClientController {
         dto.setAdresse(adresse);
         dto.setVille(ville);
         dto.setDocumentType(documentType);
-        dto.setCustomerGroupId(customerGroupId);
+        dto.setCustomerGroupId(parseNullableLong(customerGroupId, "customerGroupId"));
 
         if (documentType == 1) {
             dto.setCinNumber(cinNumber);
@@ -145,7 +145,7 @@ public class ClientController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('VENTE')")
+    @PreAuthorize("hasAnyRole('VENTE','DSI')")
     public ResponseEntity<PaginatedResponse<ClientDTO>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -167,5 +167,22 @@ public class ClientController {
         Files.write(chemin, file.getBytes());
         // ✅ retourner uniquement le chemin relatif avec forward slashes
         return "documents/" + nomFichier;
+    }
+
+    private Long parseNullableLong(String value, String fieldName) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        if (trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed)) {
+            return null;
+        }
+
+        try {
+            return Long.valueOf(trimmed);
+        } catch (NumberFormatException ex) {
+            throw new RuntimeException(fieldName + " doit etre un nombre valide");
+        }
     }
 }

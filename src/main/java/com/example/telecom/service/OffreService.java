@@ -4,6 +4,7 @@ import com.example.telecom.dto.OffreDTO;
 import com.example.telecom.dto.PaginatedResponse;
 import com.example.telecom.entity.Offre;
 import com.example.telecom.entity.PlanTarifaire;
+import com.example.telecom.entity.Role;
 import com.example.telecom.entity.Services;
 import com.example.telecom.repository.OffreRepository;
 import com.example.telecom.repository.PlanTarifaireRepository;
@@ -26,10 +27,20 @@ public class OffreService {
     private final OffreRepository offreRepository;
     private final PlanTarifaireRepository planTarifaireRepository;
     private final ServiceRepository serviceRepository;
+    private final NotificationService notificationService;
 
     public OffreDTO creer(OffreDTO dto) {
         Offre offre = buildOffre(new Offre(), dto);
-        return toDTO(offreRepository.save(offre));
+        Offre saved = offreRepository.save(offre);
+        notificationService.notifyRole(
+                Role.EXPLOIT,
+                "OFFRE_CREEE",
+                "Nouvelle offre créée",
+                "Une nouvelle offre \"" + saved.getNomOffre() + "\" a été créée par le métier.",
+                "OFFRE",
+                saved.getId()
+        );
+        return toDTO(saved);
     }
 
     @Transactional

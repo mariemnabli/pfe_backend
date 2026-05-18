@@ -41,6 +41,7 @@ public class PromotionService {
     private final CustomerGroupMemberRepository customerGroupMemberRepository;
     private final CustomerGroupRepository customerGroupRepository;
     private final ContratRepository contratRepository;
+    private final NotificationService notificationService;
 
     // Métier: Créer une promotion
     public PromotionDTO creerPromotion(PromotionDTO dto) {
@@ -59,7 +60,16 @@ public class PromotionService {
                 .createur(createur)
                 .build();
 
-        return toDTO(promotionRepository.save(promotion));
+        Promotion saved = promotionRepository.save(promotion);
+        notificationService.notifyRole(
+                Role.EXPLOIT,
+                "PROMOTION_CREEE",
+                "Nouvelle promotion créée",
+                "Une nouvelle promotion \"" + saved.getNomPromotion() + "\" a été créée par le métier.",
+                "PROMOTION",
+                saved.getId()
+        );
+        return toDTO(saved);
     }
 
     // Exploit: Valider une promotion
@@ -69,7 +79,10 @@ public class PromotionService {
                 .orElseThrow(() -> new RuntimeException("Validateur introuvable"));
         promotion.setStatut(Promotion.StatutPromotion.VALIDEE);
         promotion.setValidateur(validateur);
-        return toDTO(promotionRepository.save(promotion));
+        Promotion saved = promotionRepository.save(promotion);
+        notifierVendeursPromotionDisponible(saved, "PROMOTION_VALIDEE", "Promotion validée",
+                "La promotion \"" + saved.getNomPromotion() + "\" a été validée par l'exploit.");
+        return toDTO(saved);
     }
 
     // Exploit: Rejeter une promotion
@@ -90,7 +103,10 @@ public class PromotionService {
             throw new RuntimeException("La promotion doit être validée avant activation");
         }
         promotion.setStatut(Promotion.StatutPromotion.ACTIVE);
-        return toDTO(promotionRepository.save(promotion));
+        Promotion saved = promotionRepository.save(promotion);
+        notifierVendeursPromotionDisponible(saved, "PROMOTION_ACTIVEE", "Promotion activée",
+                "La promotion \"" + saved.getNomPromotion() + "\" est maintenant active.");
+        return toDTO(saved);
     }
 
     // Exploit: Suspendre une promotion
@@ -156,7 +172,9 @@ public class PromotionService {
         assignment.setStatus(PromotionAssignment.AssignmentStatus.ACTIVE);
         assignment.setValidatedBy(validateur);
         assignment.setValidatedAt(LocalDateTime.now());
-        return toAssignmentDTO(promotionAssignmentRepository.save(assignment));
+        PromotionAssignment saved = promotionAssignmentRepository.save(assignment);
+        notifierVendeurValidationAssignment(saved);
+        return toAssignmentDTO(saved);
     }
 
     public PromotionAssignmentDTO rejeterAssignment(Long promotionId, Long assignmentId, Long validateurId) {
@@ -462,5 +480,48 @@ public class PromotionService {
                 .email(user.getEmail())
                 .role(user.getRole() != null ? user.getRole().name() : null)
                 .build();
+    }
+
+    private void notifierVendeursPromotionDisponible(Promotion promotion, String type, String title, String message) {
+        notificationService.notifyRole(
+                Role.VENTE,
+                type,
+                title,
+                message,
+                "PROMOTION",
+                promotion.getId()
+        );
+    }
+
+    private void notifierVendeurValidationAssignment(PromotionAssignment assignment) {
+        User vendeur = assignment.getAssignedBy();
+        if (vendeur == null) {
+            return;
+        }
+
+        String cible = buildAssignmentTargetLabel(assignment);
+
+        notificationService.notifyUser(
+                vendeur,
+                "ASSIGNMENT_VALIDE",
+                "Affectation validée",
+                "L'affectation de la promotion \"" + assignment.getPromotion().getNomPromotion()
+                        + "\" vers " + cible + " a été validée.",
+                "PROMOTION_ASSIGNMENT",
+                assignment.getId()
+        );
+    }
+
+    private String buildAssignmentTargetLabel(PromotionAssignment assignment) {
+        if (assignment.getTargetCustomer() != null) {
+            return assignment.getTargetCustomer().getNom() + " " + assignment.getTargetCustomer().getPrenom();
+        }
+        if (assignment.getTargetGroup() != null) {
+            return assignment.getTargetGroup().getName();
+        }
+        if (assignment.getTargetContract() != null) {
+            return assignment.getTargetContract().getContractId();
+        }
+        return "la cible";
     }
 }

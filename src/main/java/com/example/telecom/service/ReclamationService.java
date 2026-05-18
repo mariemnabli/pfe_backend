@@ -5,6 +5,7 @@ import com.example.telecom.entity.Client;
 import com.example.telecom.entity.CustomerGroup;
 import com.example.telecom.entity.CustomerGroupMember;
 import com.example.telecom.entity.Reclamation;
+import com.example.telecom.entity.Role;
 import com.example.telecom.repository.ClientRepository;
 import com.example.telecom.repository.CustomerGroupMemberRepository;
 import com.example.telecom.repository.CustomerGroupRepository;
@@ -25,6 +26,7 @@ public class ReclamationService {
     private final CustomerGroupRepository customerGroupRepository;
     private final CustomerGroupMemberRepository customerGroupMemberRepository;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     public ReclamationDTO creer(ReclamationDTO dto) {
         validateTarget(dto);
@@ -50,7 +52,9 @@ public class ReclamationService {
                 .customerGroup(group)
                 .build();
 
-        return toDTO(reclamationRepository.save(r));
+        Reclamation saved = reclamationRepository.save(r);
+        notifierDsiNouvelleReclamation(saved);
+        return toDTO(saved);
     }
 
     public ReclamationDTO changerStatut(Long id, Reclamation.StatutReclamation statut) {
@@ -78,14 +82,12 @@ public class ReclamationService {
     public ReclamationDTO repondre(Long id, ReclamationDTO dto) {
         Reclamation r = reclamationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Réclamation introuvable : " + id));
-        String commentaireDsiAvant = r.getCommentaireDsi();
         if (dto.getStatut() != null) r.setStatut(dto.getStatut());
         if (dto.getCommentaireDsi() != null) r.setCommentaireDsi(dto.getCommentaireDsi());
         Reclamation saved = reclamationRepository.save(r);
 
         if (dto.getCommentaireDsi() != null
-                && !dto.getCommentaireDsi().isBlank()
-                && !dto.getCommentaireDsi().equals(commentaireDsiAvant)) {
+                && !dto.getCommentaireDsi().isBlank()) {
             notifierClientReponseDsi(saved);
         }
 
@@ -175,6 +177,21 @@ public class ReclamationService {
                 reclamation.getDescription(),
                 reclamation.getCommentaireDsi(),
                 reclamation.getStatut() != null ? reclamation.getStatut().name() : null
+        );
+    }
+
+    private void notifierDsiNouvelleReclamation(Reclamation reclamation) {
+        String cible = reclamation.getClient() != null
+                ? "client " + reclamation.getClient().getNom() + " " + reclamation.getClient().getPrenom()
+                : "groupe " + reclamation.getCustomerGroup().getName();
+
+        notificationService.notifyRole(
+                Role.DSI,
+                "RECLAMATION_CREEE",
+                "Nouvelle réclamation",
+                "Une nouvelle réclamation a été créée pour " + cible + ".",
+                "RECLAMATION",
+                reclamation.getId()
         );
     }
 

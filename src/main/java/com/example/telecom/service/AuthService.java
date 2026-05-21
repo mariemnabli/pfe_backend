@@ -16,16 +16,21 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository      userRepository;
-    private final PasswordEncoder     passwordEncoder;
-    private final JwtUtil             jwtUtil;
-    private final EmailService        emailService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+    private final EmailService emailService;
     private final RefreshTokenService refreshTokenService;
 
     // ─── LOGIN ───────────────────────────────────────────────
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findUserByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        // Vérifier si l'utilisateur est activé
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Compte désactivé. Veuillez contacter l'administrateur.");
+        }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Mot de passe incorrect");
@@ -34,14 +39,13 @@ public class AuthService {
         // Première connexion
         if (!user.isPremiereConnexion()) {
             user.setPremiereConnexion(true);
-            user.setEnabled(true);
             user.setFirstTimeConnexion(new Date());
             userRepository.save(user);
             emailService.envoyerNotificationPremiereConnexion(user.getEmail(), user.getUsername());
         }
 
-        String accessToken  = jwtUtil.generateToken(user);
-        String refreshToken = refreshTokenService.generer(user); // ✅
+        String accessToken = jwtUtil.generateToken(user);
+        String refreshToken = refreshTokenService.generer(user);
 
         return new AuthResponse(accessToken, refreshToken, user.getEmail(), user.getRole());
     }
@@ -50,7 +54,7 @@ public class AuthService {
     public AuthResponse refresh(String refreshToken) {
         User user = refreshTokenService.valider(refreshToken);
 
-        String newAccessToken  = jwtUtil.generateToken(user);
+        String newAccessToken = jwtUtil.generateToken(user);
         String newRefreshToken = refreshTokenService.generer(user); // rotation
 
         return new AuthResponse(newAccessToken, newRefreshToken, user.getEmail(), user.getRole());
@@ -69,7 +73,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
 
-        String accessToken  = jwtUtil.generateToken(user);
+        String accessToken = jwtUtil.generateToken(user);
         String refreshToken = refreshTokenService.generer(user); // ✅
 
         return new AuthResponse(accessToken, refreshToken, user.getEmail(), user.getRole());

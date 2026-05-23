@@ -11,9 +11,14 @@ import java.util.Optional;
 @Repository
 public interface ContratRepository extends JpaRepository<Contrat, Long> {
     List<Contrat> findByClientId(Long clientId);
+
     List<Contrat> findByCustomerGroupId(Long customerGroupId);
+
     List<Contrat> findByStatut(Contrat.StatutContrat statut);
+
     Optional<Contrat> findByContractId(String contractId);
+
+    List<Contrat> findByClientIdAndStatut(Long clientId, Contrat.StatutContrat statut);
 
     @Query("SELECT MAX(c.id) FROM Contrat c")
     Optional<Long> findMaxId();

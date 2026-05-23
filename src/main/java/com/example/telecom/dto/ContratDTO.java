@@ -19,8 +19,8 @@ public class ContratDTO {
     private String contractId;
     private ContractType contractType;
     private ContractHolderType holderType;
-    private LocalDate dateDebut;
-    private LocalDate dateFin;
+    private LocalDate dateActivation;
+    private LocalDate dateDesactivation;
     private Contrat.StatutContrat statut;
     private Number directoryNumber;
 

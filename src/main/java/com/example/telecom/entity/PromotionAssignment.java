@@ -66,7 +66,7 @@ public class PromotionAssignment {
     @Builder.Default
     private AssignmentMode assignmentMode = AssignmentMode.MANUAL;
 
-    @Column(nullable = false)
+    @Column(name = "effective_start_date", nullable = true)
     private LocalDate effectiveStartDate;
 
     private LocalDate effectiveEndDate;
@@ -95,6 +95,7 @@ public class PromotionAssignment {
 
     public enum AssignmentStatus {
         ACTIVE,
+        PENDING,
         SUSPENDED,
         REMOVED,
         EXPIRED

@@ -73,8 +73,6 @@ public class CsvImportService {
             ContratDTO dto = new ContratDTO();
             dto.setContractType(parseContractType(optional(row, "contracttype")));
             dto.setHolderType(parseHolderType(optional(row, "holdertype")));
-            dto.setDateDebut(parseDate(required(row, "datedebut"), "dateDebut"));
-            dto.setDateFin(parseDate(optional(row, "datefin"), "dateFin"));
             dto.setDirectoryNumber(parseLong(optional(row, "directorynumber"), "directoryNumber"));
             dto.setClientId(parseLong(optional(row, "clientid"), "clientId"));
             dto.setCustomerGroupId(parseLong(optional(row, "customergroupid"), "customerGroupId"));

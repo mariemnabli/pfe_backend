@@ -144,7 +144,7 @@ public class PromotionService {
                 .status(PromotionAssignment.AssignmentStatus.SUSPENDED)
                 .validationStatus(PromotionAssignment.ValidationStatus.PENDING)
                 .assignmentMode(dto.getAssignmentMode() != null ? dto.getAssignmentMode() : PromotionAssignment.AssignmentMode.MANUAL)
-                .effectiveStartDate(dto.getEffectiveStartDate() != null ? dto.getEffectiveStartDate() : LocalDate.now())
+                .effectiveStartDate(dto.getEffectiveStartDate())
                 .effectiveEndDate(dto.getEffectiveEndDate())
                 .inheritedToMembers(dto.isInheritedToMembers())
                 .assignedBy(vendeur)
@@ -152,12 +152,56 @@ public class PromotionService {
 
         switch (dto.getTargetType()) {
             case CUSTOMER -> assignment.setTargetCustomer(resolveCustomer(dto.getTargetCustomerId()));
-            case CUSTOMER_GROUP -> assignment.setTargetGroup(resolveGroup(dto.getTargetGroupId()));
+            case CUSTOMER_GROUP -> {
+                CustomerGroup group = resolveGroup(dto.getTargetGroupId());
+                assignment.setTargetGroup(group);
+
+                // Si inheritedToMembers = true, créer des entrées individuelles pour chaque membre actif
+                if (dto.isInheritedToMembers()) {
+                    List<CustomerGroupMember> activeMembers = customerGroupMemberRepository
+                            .findByCustomerGroupIdAndStatus(group.getId(), CustomerGroupMember.MembershipStatus.ACTIVE);
+
+                    for (CustomerGroupMember member : activeMembers) {
+                        Client customer = member.getCustomer();
+                        if (customer != null) {
+                            // Vérifier si une affectation existe déjà pour ce client
+                            boolean alreadyExists = promotionAssignmentRepository
+                                    .findByPromotionIdAndTargetCustomerId(promotionId, customer.getId())
+                                    .isPresent();
+
+                            if (!alreadyExists) {
+                                PromotionAssignment individualAssignment = PromotionAssignment.builder()
+                                        .promotion(promotion)
+                                        .targetType(PromotionAssignment.TargetType.CUSTOMER)
+                                        .targetCustomer(customer)
+                                        .status(PromotionAssignment.AssignmentStatus.SUSPENDED)
+                                        .validationStatus(PromotionAssignment.ValidationStatus.PENDING)
+                                        .assignmentMode(assignment.getAssignmentMode())
+                                        .effectiveStartDate(assignment.getEffectiveStartDate())
+                                        .effectiveEndDate(assignment.getEffectiveEndDate())
+                                        .inheritedToMembers(false) // Important: false pour éviter la récursion
+                                        .assignedBy(vendeur)
+                                        .build();
+
+                                promotionAssignmentRepository.save(individualAssignment);
+                            }
+                        }
+                    }
+                }
+            }
             case CONTRACT -> assignment.setTargetContract(resolveContract(dto.getTargetContractId()));
             default -> throw new RuntimeException("targetType non supporte");
         }
 
-        return toAssignmentDTO(promotionAssignmentRepository.save(assignment));
+        PromotionAssignment saved = promotionAssignmentRepository.save(assignment);
+
+        // Notifier les membres du groupe si nécessaire
+        if (dto.getTargetType() == PromotionAssignment.TargetType.CUSTOMER_GROUP
+                && dto.isInheritedToMembers()) {
+            CustomerGroup group = resolveGroup(dto.getTargetGroupId());
+        }
+
+        return toAssignmentDTO(saved);
     }
 
     public PromotionAssignmentDTO validerAssignment(Long promotionId, Long assignmentId, Long validateurId) {
@@ -415,13 +459,13 @@ public class PromotionService {
             return false;
         }
 
-        LocalDate today = LocalDate.now();
+       /* LocalDate today = LocalDate.now();
         if (assignment.getEffectiveStartDate() != null && today.isBefore(assignment.getEffectiveStartDate())) {
             return false;
         }
         if (assignment.getEffectiveEndDate() != null && today.isAfter(assignment.getEffectiveEndDate())) {
             return false;
-        }
+        }*/
 
         return switch (assignment.getTargetType()) {
             case CUSTOMER -> assignment.getTargetCustomer() != null

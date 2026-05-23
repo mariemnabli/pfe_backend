@@ -3,13 +3,18 @@ package com.example.telecom.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "contrats")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Contrat {
 
     @Id
@@ -27,8 +32,8 @@ public class Contrat {
     @Column(nullable = false)
     private ContractHolderType holderType = ContractHolderType.CUSTOMER;
 
-    private LocalDate dateDebut;
-    private LocalDate dateFin;
+    private LocalDate dateActivation;
+    private LocalDate dateDesactivation;
 
     @Enumerated(EnumType.STRING)
     private StatutContrat statut = StatutContrat.ACTIF;

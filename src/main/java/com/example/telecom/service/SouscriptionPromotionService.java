@@ -67,15 +67,6 @@ public class SouscriptionPromotionService {
             throw new RuntimeException("La promotion n'est pas affectee a ce client, groupe ou contrat");
         }
 
-        // Vérifier ancienneté minimale
-        if (promotion.getAncienneteMinimale() != null && contrat.getDateDebut() != null) {
-            long moisAnciennete = ChronoUnit.MONTHS.between(contrat.getDateDebut(), today);
-            if (moisAnciennete < promotion.getAncienneteMinimale()) {
-                throw new RuntimeException("Ancienneté insuffisante. Requis: "
-                        + promotion.getAncienneteMinimale() + " mois, actuel: " + moisAnciennete + " mois");
-            }
-        }
-
         return true;
     }
 

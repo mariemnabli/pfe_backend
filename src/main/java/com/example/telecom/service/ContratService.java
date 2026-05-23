@@ -22,6 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -45,8 +46,7 @@ public class ContratService {
                 .contractId(genererContractId())
                 .contractType(holder.contractType())
                 .holderType(holder.holderType())
-                .dateDebut(dto.getDateDebut())
-                .dateFin(dto.getDateFin())
+                .dateActivation(LocalDate.now())
                 .statut(Contrat.StatutContrat.ACTIF)
                 .client(holder.client())
                 .customerGroup(holder.customerGroup())
@@ -85,9 +85,8 @@ public class ContratService {
                 .orElseThrow(() -> new RuntimeException("Contrat introuvable : " + id));
 
         // Dates
-        if (dto.getDateDebut() != null) contrat.setDateDebut(dto.getDateDebut());
-        if (dto.getDateFin()   != null) contrat.setDateFin(dto.getDateFin());
-        if (dto.getStatut()    != null) contrat.setStatut(dto.getStatut());
+
+        if (dto.getStatut() != null) contrat.setStatut(dto.getStatut());
 
         if (dto.getClientId() != null || dto.getCustomerGroupId() != null || dto.getContractType() != null || dto.getHolderType() != null) {
             HolderSelection holder = resolveHolder(dto);
@@ -108,6 +107,7 @@ public class ContratService {
             remplacerDirectoryNumberActif(saved, dto.getDirectoryNumber());
         }
         if (dto.getStatut() == Contrat.StatutContrat.RESILIE) {
+            contrat.setDateDesactivation(LocalDate.now());
             desactiverDirectoryNumberActif(saved);
         }
         return toDTO(saved);
@@ -118,6 +118,7 @@ public class ContratService {
         Contrat contrat = contratRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Contrat introuvable : " + id));
         contrat.setStatut(Contrat.StatutContrat.RESILIE);
+        contrat.setDateDesactivation(LocalDate.now());
         Contrat saved = contratRepository.save(contrat);
         desactiverDirectoryNumberActif(saved);
         return toDTO(saved);
@@ -175,36 +176,36 @@ public class ContratService {
                 .contractId(c.getContractId())
                 .contractType(c.getContractType())
                 .holderType(c.getHolderType())
-                .dateDebut(c.getDateDebut())
-                .dateFin(c.getDateFin())
+                .dateActivation(c.getDateActivation())
+                .dateDesactivation(c.getDateDesactivation())
                 .statut(c.getStatut())
                 .directoryNumber(resolveDirectoryNumber(c))
                 .clientId(c.getClient() != null ? c.getClient().getId() : null)
                 .customerGroupId(c.getCustomerGroup() != null ? c.getCustomerGroup().getId() : null)
-                .offreId(c.getOffre()  != null ? c.getOffre().getId()  : null)
+                .offreId(c.getOffre() != null ? c.getOffre().getId() : null)
                 .client(c.getClient() != null ? ContratDTO.ClientSummary.builder()
-                        .id(c.getClient().getId())
-                        .nom(c.getClient().getNom())
-                        .prenom(c.getClient().getPrenom())
-                        .email(c.getClient().getEmail())
-                        .telephone(c.getClient().getTelephone())
-                        .build() : null)
+                                                .id(c.getClient().getId())
+                                                .nom(c.getClient().getNom())
+                                                .prenom(c.getClient().getPrenom())
+                                                .email(c.getClient().getEmail())
+                                                .telephone(c.getClient().getTelephone())
+                                                .build() : null)
                 .customerGroup(c.getCustomerGroup() != null ? ContratDTO.GroupSummary.builder()
-                        .id(c.getCustomerGroup().getId())
-                        .groupCode(c.getCustomerGroup().getGroupCode())
-                        .name(c.getCustomerGroup().getName())
-                        .groupType(c.getCustomerGroup().getGroupType().name())
-                        .build() : null)
+                                                              .id(c.getCustomerGroup().getId())
+                                                              .groupCode(c.getCustomerGroup().getGroupCode())
+                                                              .name(c.getCustomerGroup().getName())
+                                                              .groupType(c.getCustomerGroup().getGroupType().name())
+                                                              .build() : null)
                 .offre(c.getOffre() != null ? ContratDTO.OffreSummary.builder()
-                        .id(c.getOffre().getId())
-                        .nom(c.getOffre().getNomOffre())
-                        .prixMensuel(c.getOffre().getPlanTarifaire() != null
-                                ? c.getOffre().getPlanTarifaire().getPrixMensuel()
-                                : null)
-                        .description(c.getOffre().getPlanTarifaire() != null
-                                ? c.getOffre().getPlanTarifaire().getDescription()
-                                : null)
-                        .build() : null)
+                                              .id(c.getOffre().getId())
+                                              .nom(c.getOffre().getNomOffre())
+                                              .prixMensuel(c.getOffre().getPlanTarifaire() != null
+                                                           ? c.getOffre().getPlanTarifaire().getPrixMensuel()
+                                                           : null)
+                                              .description(c.getOffre().getPlanTarifaire() != null
+                                                           ? c.getOffre().getPlanTarifaire().getDescription()
+                                                           : null)
+                                              .build() : null)
                 .build();
     }
 
@@ -267,7 +268,8 @@ public class ContratService {
             ContractHolderType holderType,
             Client client,
             CustomerGroup customerGroup
-    ) {}
+    ) {
+    }
 
     private Long resolveDirectoryNumber(Contrat contrat) {
         return directoryNumberRepository
@@ -300,7 +302,7 @@ public class ContratService {
 
         directoryNumber.setContrat(contrat);
         directoryNumber.setStatus(DirectoryNumber.DirectoryNumberStatus.ACTIF);
-        directoryNumber.setDateActivation(contrat.getDateDebut() != null ? contrat.getDateDebut() : java.time.LocalDate.now());
+        directoryNumber.setDateActivation(contrat.getDateActivation() != null ? contrat.getDateActivation() : java.time.LocalDate.now());
         directoryNumber.setDateDesactivation(null);
         directoryNumberRepository.save(directoryNumber);
     }
@@ -315,7 +317,7 @@ public class ContratService {
                 .findFirstByContratIdAndStatusOrderByIdDesc(contrat.getId(), DirectoryNumber.DirectoryNumberStatus.ACTIF)
                 .ifPresent(directoryNumber -> {
                     directoryNumber.setStatus(DirectoryNumber.DirectoryNumberStatus.DESACTIVE);
-                    directoryNumber.setDateDesactivation(contrat.getDateFin() != null ? contrat.getDateFin() : java.time.LocalDate.now());
+                    directoryNumber.setDateDesactivation(contrat.getDateDesactivation() != null ? contrat.getDateDesactivation() : java.time.LocalDate.now());
                     directoryNumberRepository.save(directoryNumber);
                 });
     }

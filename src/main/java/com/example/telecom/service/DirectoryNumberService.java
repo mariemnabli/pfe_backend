@@ -104,7 +104,7 @@ public class DirectoryNumberService {
         return status;
     }
 
-    private java.time.LocalDate resolveDateActivation(
+    private java.time.LocalDateTime resolveDateActivation(
             DirectoryNumberDTO dto,
             Contrat contrat,
             DirectoryNumber.DirectoryNumberStatus status
@@ -113,12 +113,12 @@ public class DirectoryNumberService {
             return dto.getDateActivation();
         }
         if (status == DirectoryNumber.DirectoryNumberStatus.ACTIF && contrat != null) {
-            return contrat.getDateActivation() != null ? contrat.getDateActivation() : java.time.LocalDate.now();
+            return contrat.getDateActivation() != null ? contrat.getDateActivation() : java.time.LocalDateTime.now();
         }
         return null;
     }
 
-    private java.time.LocalDate resolveDateDesactivation(
+    private java.time.LocalDateTime resolveDateDesactivation(
             DirectoryNumberDTO dto,
             Contrat contrat,
             DirectoryNumber.DirectoryNumberStatus status
@@ -127,7 +127,7 @@ public class DirectoryNumberService {
             return dto.getDateDesactivation();
         }
         if (status == DirectoryNumber.DirectoryNumberStatus.DESACTIVE && contrat != null) {
-            return contrat.getDateDesactivation() != null ? contrat.getDateDesactivation() : java.time.LocalDate.now();
+            return contrat.getDateDesactivation() != null ? contrat.getDateDesactivation() : java.time.LocalDateTime.now();
         }
         return null;
     }

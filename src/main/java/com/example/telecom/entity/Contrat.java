@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,8 +33,8 @@ public class Contrat {
     @Column(nullable = false)
     private ContractHolderType holderType = ContractHolderType.CUSTOMER;
 
-    private LocalDate dateActivation;
-    private LocalDate dateDesactivation;
+    private LocalDateTime dateActivation;
+    private LocalDateTime dateDesactivation;
 
     @Enumerated(EnumType.STRING)
     private StatutContrat statut = StatutContrat.ACTIF;

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -265,12 +266,12 @@ public class CsvImportService {
                 .collect(Collectors.toList());
     }
 
-    private LocalDate parseDate(String value, String fieldName) {
+    private LocalDateTime parseDate(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             return null;
         }
         try {
-            return LocalDate.parse(value.trim());
+            return LocalDateTime.parse(value.trim());
         } catch (DateTimeParseException ex) {
             throw new RuntimeException("Date invalide pour " + fieldName + " : " + value
                     + ". Format attendu: yyyy-MM-dd");

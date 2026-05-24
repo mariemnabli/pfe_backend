@@ -22,7 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -46,7 +46,7 @@ public class ContratService {
                 .contractId(genererContractId())
                 .contractType(holder.contractType())
                 .holderType(holder.holderType())
-                .dateActivation(LocalDate.now())
+                .dateActivation(LocalDateTime.now())
                 .statut(Contrat.StatutContrat.ACTIF)
                 .client(holder.client())
                 .customerGroup(holder.customerGroup())
@@ -107,7 +107,7 @@ public class ContratService {
             remplacerDirectoryNumberActif(saved, dto.getDirectoryNumber());
         }
         if (dto.getStatut() == Contrat.StatutContrat.RESILIE) {
-            contrat.setDateDesactivation(LocalDate.now());
+            contrat.setDateDesactivation(LocalDateTime.now());
             desactiverDirectoryNumberActif(saved);
         }
         return toDTO(saved);
@@ -118,7 +118,7 @@ public class ContratService {
         Contrat contrat = contratRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Contrat introuvable : " + id));
         contrat.setStatut(Contrat.StatutContrat.RESILIE);
-        contrat.setDateDesactivation(LocalDate.now());
+        contrat.setDateDesactivation(LocalDateTime.now());
         Contrat saved = contratRepository.save(contrat);
         desactiverDirectoryNumberActif(saved);
         return toDTO(saved);
@@ -302,7 +302,7 @@ public class ContratService {
 
         directoryNumber.setContrat(contrat);
         directoryNumber.setStatus(DirectoryNumber.DirectoryNumberStatus.ACTIF);
-        directoryNumber.setDateActivation(contrat.getDateActivation() != null ? contrat.getDateActivation() : java.time.LocalDate.now());
+        directoryNumber.setDateActivation(contrat.getDateActivation() != null ? contrat.getDateActivation() : java.time.LocalDateTime.now());
         directoryNumber.setDateDesactivation(null);
         directoryNumberRepository.save(directoryNumber);
     }
@@ -317,7 +317,7 @@ public class ContratService {
                 .findFirstByContratIdAndStatusOrderByIdDesc(contrat.getId(), DirectoryNumber.DirectoryNumberStatus.ACTIF)
                 .ifPresent(directoryNumber -> {
                     directoryNumber.setStatus(DirectoryNumber.DirectoryNumberStatus.DESACTIVE);
-                    directoryNumber.setDateDesactivation(contrat.getDateDesactivation() != null ? contrat.getDateDesactivation() : java.time.LocalDate.now());
+                    directoryNumber.setDateDesactivation(contrat.getDateDesactivation() != null ? contrat.getDateDesactivation() : java.time.LocalDateTime.now());
                     directoryNumberRepository.save(directoryNumber);
                 });
     }

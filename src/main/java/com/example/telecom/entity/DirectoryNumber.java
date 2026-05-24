@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "directory_numbers")
@@ -26,10 +27,10 @@ public class DirectoryNumber {
     private DirectoryNumberStatus status;
 
     @Column(name = "date_activation")
-    private LocalDate dateActivation;
+    private LocalDateTime dateActivation;
 
     @Column(name = "date_desactivation")
-    private LocalDate dateDesactivation;
+    private LocalDateTime dateDesactivation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "contrat_id")

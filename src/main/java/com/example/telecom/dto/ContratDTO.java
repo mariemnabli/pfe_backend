@@ -1,14 +1,16 @@
 package com.example.telecom.dto;
 
+import com.example.telecom.config.FlexibleLocalDateTimeDeserializer;
 import com.example.telecom.entity.ContractHolderType;
 import com.example.telecom.entity.ContractType;
 import com.example.telecom.entity.Contrat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -19,8 +21,10 @@ public class ContratDTO {
     private String contractId;
     private ContractType contractType;
     private ContractHolderType holderType;
-    private LocalDate dateActivation;
-    private LocalDate dateDesactivation;
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
+    private LocalDateTime dateActivation;
+    @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
+    private LocalDateTime dateDesactivation;
     private Contrat.StatutContrat statut;
     private Number directoryNumber;
 

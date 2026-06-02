@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+src/main/resources/application.properties
+docs
+/home/iba-conseil002/pfe_backend/docs

@@ -9,7 +9,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "promotion_assignments")
+@Table(
+        name = "promotion_assignments",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_promo_customer",
+                        columnNames = {"promotion_id", "target_customer_id"}
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor

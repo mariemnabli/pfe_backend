@@ -32,5 +32,9 @@ public interface PromotionAssignmentRepository extends JpaRepository<PromotionAs
 
     List<PromotionAssignment> findByTargetGroupId(Long groupId);
 
+    List<PromotionAssignment> findAllByPromotionIdAndTargetCustomerId(Long promotionId, Long customerId);
+
+    List<PromotionAssignment> findByTargetGroupIdAndPromotionId(Long groupId, Long promotionId);
+
     List<PromotionAssignment> findByTargetContractId(Long contractId);
 }

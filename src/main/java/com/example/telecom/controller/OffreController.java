@@ -75,7 +75,6 @@ public class OffreController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('METIER','VENTE','EXPLOIT')")
     public ResponseEntity<PaginatedResponse<OffreDTO>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {

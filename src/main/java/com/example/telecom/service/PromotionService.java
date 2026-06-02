@@ -116,6 +116,20 @@ public class PromotionService {
         return toDTO(promotionRepository.save(promotion));
     }
 
+    public PromotionAssignmentDTO suspendreAssignment(Long promotionId, Long assignmentId) {
+        PromotionAssignment assignment = getAssignment(promotionId, assignmentId);
+
+        if (assignment.getValidationStatus() != PromotionAssignment.ValidationStatus.VALIDATED) {
+            throw new RuntimeException("Seules les affectations validées peuvent être suspendues");
+        }
+        if (assignment.getStatus() == PromotionAssignment.AssignmentStatus.SUSPENDED) {
+            throw new RuntimeException("Cette affectation est déjà suspendue");
+        }
+
+        assignment.setStatus(PromotionAssignment.AssignmentStatus.SUSPENDED);
+        return toAssignmentDTO(promotionAssignmentRepository.save(assignment));
+    }
+
     public PaginatedResponse<PromotionDTO> getAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         Page<PromotionDTO> result = promotionRepository.findAll(pageable).map(this::toDTO);
@@ -259,9 +273,9 @@ public class PromotionService {
     public List<PromotionDTO> getPromotionsApplicablesAuGroupe(Long groupId) {
         resolveGroup(groupId);
 
-        return promotionRepository.findAll().stream()
-                .filter(promotion -> hasActiveTarget(promotion, null, List.of(groupId), List.of(), null))
-                .map(this::toDTO)
+        return promotionAssignmentRepository.findByTargetGroupId(groupId).stream()
+                .map(a -> toDTO(a.getPromotion()))
+                .distinct()
                 .collect(Collectors.toList());
     }
 

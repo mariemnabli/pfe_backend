@@ -57,6 +57,14 @@ public class PromotionController {
         return ResponseEntity.ok(promotionService.suspendrePromotion(id));
     }
 
+    @PutMapping("/{id}/assignments/{assignmentId}/suspendre")
+    @PreAuthorize("hasRole('EXPLOIT')")
+    public ResponseEntity<PromotionAssignmentDTO> suspendreAssignment(
+            @PathVariable Long id,
+            @PathVariable Long assignmentId) {
+        return ResponseEntity.ok(promotionService.suspendreAssignment(id, assignmentId));
+    }
+
     // Métier: Modifier une promotion
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('METIER')")

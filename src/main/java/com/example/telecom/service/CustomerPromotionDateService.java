@@ -71,16 +71,15 @@ public class CustomerPromotionDateService {
             }
 
             // Chercher l'assignation de promotion pour ce client
-            Optional<PromotionAssignment> assignments = promotionAssignmentRepository
-                    .findByPromotionIdAndTargetCustomerId(promotionId, client.getId());
+            List<PromotionAssignment> assignments = promotionAssignmentRepository
+                    .findAllByPromotionIdAndTargetCustomerId(promotionId, client.getId());
 
-            // Trouver l'assignation pertinente
             PromotionAssignment assignment = assignments.stream()
                     .filter(a -> a.getTargetType() == PromotionAssignment.TargetType.CUSTOMER)
-                    .findFirst()
-                    .orElse(assignments.stream()
+                    .max(Comparator.comparing(PromotionAssignment::getId))
+                    .orElseGet(() -> assignments.stream()
                             .filter(a -> a.getTargetType() == PromotionAssignment.TargetType.CUSTOMER_GROUP)
-                            .findFirst()
+                            .max(Comparator.comparing(PromotionAssignment::getId))
                             .orElse(null));
 
             if (assignment != null) {
@@ -174,53 +173,59 @@ public class CustomerPromotionDateService {
     /**
      * Mettre à jour les dates pour un client spécifique
      */
-// Dans PromotionService.java
     @Transactional
     public void updateCustomerDates(Long promotionId, Long customerId,
                                     LocalDate startDate, LocalDate endDate,
                                     Long groupId, Long userId) {
 
-        // Vérifier si une assignation individuelle existe déjà
-        Optional<PromotionAssignment> existingAssignment = promotionAssignmentRepository
-                .findByPromotionIdAndTargetCustomerId(promotionId, customerId);
+        List<PromotionAssignment> existingAssignments = promotionAssignmentRepository
+                .findAllByPromotionIdAndTargetCustomerId(promotionId, customerId);
 
-        if (existingAssignment.isPresent()) {
-            // Mettre à jour l'assignation existante
-            PromotionAssignment assignment = existingAssignment.get();
-            assignment.setEffectiveStartDate(startDate);
-            assignment.setEffectiveEndDate(endDate);
-            assignment.setAssignmentMode(PromotionAssignment.AssignmentMode.MANUAL);
-            promotionAssignmentRepository.save(assignment);
-            log.info("Dates mises à jour pour l'assignation individuelle du client {}", customerId);
+        if (!existingAssignments.isEmpty()) {
+            // Garder le plus récent, supprimer les doublons
+            PromotionAssignment latest = existingAssignments.stream()
+                    .max(Comparator.comparing(PromotionAssignment::getId))
+                    .get();
+
+            existingAssignments.stream()
+                    .filter(a -> !a.getId().equals(latest.getId()))
+                    .forEach(promotionAssignmentRepository::delete);
+
+            latest.setEffectiveStartDate(startDate);
+            latest.setEffectiveEndDate(endDate);
+            latest.setAssignmentMode(PromotionAssignment.AssignmentMode.MANUAL);
+            // status reste PENDING — ne pas toucher
+            promotionAssignmentRepository.save(latest);
 
         } else if (groupId != null) {
-            // Chercher l'assignation du groupe
-            Optional<PromotionAssignment> groupAssignment = promotionAssignmentRepository
-                    .findByPromotionIdAndTargetGroupId(promotionId, groupId);
+            List<PromotionAssignment> groupAssignments = promotionAssignmentRepository
+                    .findByTargetCustomerId(promotionId);
 
-            if (groupAssignment.isPresent()) {
-                // Créer une nouvelle assignation individuelle basée sur celle du groupe
-                PromotionAssignment newAssignment = PromotionAssignment.builder()
-                        .promotion(groupAssignment.get().getPromotion())
-                        .targetType(PromotionAssignment.TargetType.CUSTOMER)
-                        .targetCustomer(clientRepository.findById(customerId)
-                                .orElseThrow(() -> new RuntimeException("Client non trouvé")))
-                        .status(PromotionAssignment.AssignmentStatus.ACTIVE)
-                        .validationStatus(PromotionAssignment.ValidationStatus.VALIDATED)
-                        .assignmentMode(PromotionAssignment.AssignmentMode.MANUAL)
-                        .effectiveStartDate(startDate)
-                        .effectiveEndDate(endDate)
-                        .inheritedToMembers(false)
-                        .assignedBy(userRepository.findById(userId)
-                                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé")))
-                        .validatedAt(LocalDateTime.now())
-                        .build();
-
-                promotionAssignmentRepository.save(newAssignment);
-                log.info("Nouvelle assignation individuelle créée pour le client {} avec dates personnalisées", customerId);
-            } else {
+            if (groupAssignments.isEmpty()) {
                 throw new RuntimeException("Aucune assignation trouvée pour cette promotion et ce groupe");
             }
+
+            PromotionAssignment groupAssignment = groupAssignments.stream()
+                    .max(Comparator.comparing(PromotionAssignment::getId))
+                    .get();
+
+            // Créer une assignation individuelle PENDING pour ce client
+            PromotionAssignment newAssignment = PromotionAssignment.builder()
+                    .promotion(groupAssignment.getPromotion())
+                    .targetType(PromotionAssignment.TargetType.CUSTOMER)
+                    .targetCustomer(clientRepository.findById(customerId)
+                            .orElseThrow(() -> new RuntimeException("Client non trouvé")))
+                    .status(PromotionAssignment.AssignmentStatus.PENDING)      // ✅ PENDING
+                    .validationStatus(PromotionAssignment.ValidationStatus.PENDING) // ✅ PENDING
+                    .assignmentMode(PromotionAssignment.AssignmentMode.MANUAL)
+                    .effectiveStartDate(startDate)
+                    .effectiveEndDate(endDate)
+                    .inheritedToMembers(false)
+                    .assignedBy(userRepository.findById(userId)
+                            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé")))
+                    .build();
+
+            promotionAssignmentRepository.save(newAssignment);
         } else {
             throw new RuntimeException("Aucune assignation trouvée pour ce client");
         }

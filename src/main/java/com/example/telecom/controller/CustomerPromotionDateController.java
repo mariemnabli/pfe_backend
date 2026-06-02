@@ -45,7 +45,7 @@ public class CustomerPromotionDateController {
      * Mettre à jour les dates pour plusieurs clients
      */
     @PutMapping("/customers/bulk")
-    @PreAuthorize("hasAnyRole('EXPLOIT', 'METIER')")
+    @PreAuthorize("hasAnyRole('VENTE','EXPLOIT')")
     public ResponseEntity<CustomerDateUpdateResponseDTO> bulkUpdateDates(
             @RequestBody BulkCustomerDateUpdateDTO request,
             @RequestParam Long userId) {

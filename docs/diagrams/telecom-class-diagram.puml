@@ -34,6 +34,9 @@ package "Core Entities" {
     +email: String
     +adresse: String
     +ville: String
+    +status: ClientStatus
+    +dateActivation: LocalDate
+    +dateDesactivation: LocalDate
     +documentType: Integer
     +cinNumber: String
     +cinImagePath: String
@@ -66,7 +69,14 @@ package "Core Entities" {
     +dateDebut: LocalDate
     +dateFin: LocalDate
     +statut: StatutContrat
-    +directoryNumber: Number
+  }
+
+  class DirectoryNumber {
+    +id: Long
+    +numero: Long
+    +status: DirectoryNumberStatus
+    +dateActivation: LocalDate
+    +dateDesactivation: LocalDate
   }
 
   class Offre {
@@ -104,11 +114,13 @@ package "Core Entities" {
     +id: Long
     +targetType: TargetType
     +status: AssignmentStatus
+    +validationStatus: ValidationStatus
     +assignmentMode: AssignmentMode
     +effectiveStartDate: LocalDate
     +effectiveEndDate: LocalDate
     +inheritedToMembers: boolean
     +assignedAt: LocalDateTime
+    +validatedAt: LocalDateTime
   }
 
   class SouscriptionPromotion {
@@ -124,6 +136,7 @@ package "Core Entities" {
     +dateCreation: LocalDateTime
     +dateMiseAJour: LocalDateTime
     +commentaireVendeur: String
+    +commentaireDsi: String
   }
 }
 
@@ -133,6 +146,11 @@ package "Enums" {
     EXPLOIT
     DSI
     VENTE
+  }
+
+  enum ClientStatus {
+    ACTIVE
+    DESACTIVE
   }
 
   enum ContractType {
@@ -175,6 +193,12 @@ package "Enums" {
     INACTIVE
   }
 
+  enum DirectoryNumberStatus {
+    LIBRE
+    ACTIF
+    DESACTIVE
+  }
+
   enum StatutPromotion {
     EN_ATTENTE
     VALIDEE
@@ -202,6 +226,12 @@ package "Enums" {
     MIGRATED
   }
 
+  enum ValidationStatus {
+    PENDING
+    VALIDATED
+    REJECTED
+  }
+
   enum StatutSouscription {
     ACTIVE
     EXPIRÉE
@@ -216,6 +246,7 @@ package "Enums" {
 }
 
 User --> Role
+Client --> ClientStatus
 Contrat --> ContractType
 Contrat --> ContractHolderType
 Contrat --> StatutContrat
@@ -223,9 +254,11 @@ CustomerGroup --> GroupType
 CustomerGroup --> GroupStatus
 CustomerGroupMember --> MemberRole
 CustomerGroupMember --> MembershipStatus
+DirectoryNumber --> DirectoryNumberStatus
 Promotion --> StatutPromotion
 PromotionAssignment --> TargetType
 PromotionAssignment --> AssignmentStatus
+PromotionAssignment --> ValidationStatus
 PromotionAssignment --> AssignmentMode
 SouscriptionPromotion --> StatutSouscription
 Reclamation --> StatutReclamation
@@ -233,6 +266,7 @@ Reclamation --> StatutReclamation
 Client "1" o-- "0..*" Contrat : contrats
 CustomerGroup "1" o-- "0..*" Contrat : enterprise contracts
 Offre "1" <-- "0..*" Contrat : offre
+Contrat "1" o-- "0..*" DirectoryNumber : directoryNumbers
 
 CustomerGroup "1" o-- "0..*" CustomerGroupMember : members
 Client "1" o-- "0..*" CustomerGroupMember : memberships
@@ -244,11 +278,14 @@ Promotion "1" o-- "0..*" PromotionAssignment : assignments
 Client "1" <-- "0..*" PromotionAssignment : targetCustomer
 CustomerGroup "1" <-- "0..*" PromotionAssignment : targetGroup
 Contrat "1" <-- "0..*" PromotionAssignment : targetContract
+User "1" <-- "0..*" PromotionAssignment : assignedBy
+User "1" <-- "0..*" PromotionAssignment : validatedBy
 
 Contrat "1" o-- "0..*" SouscriptionPromotion : souscriptions
 Promotion "1" o-- "0..*" SouscriptionPromotion : souscriptions
 
 Client "1" o-- "0..*" Reclamation : reclamations
+CustomerGroup "1" o-- "0..*" Reclamation : reclamations
 
 User "1" <-- "0..*" Promotion : createur
 User "1" <-- "0..*" Promotion : validateur
@@ -266,13 +303,11 @@ note right of Contrat
 end note
 
 note right of PromotionAssignment
-  A promotion can target:
-  - one customer
-  - one customer group
-  - one contract
-
-  If inheritedToMembers = true,
-  group members inherit eligibility.
+  Exactly one target should be set
+  according to targetType:
+  - CUSTOMER -> targetCustomer
+  - CUSTOMER_GROUP -> targetGroup
+  - CONTRACT -> targetContract
 end note
 
 @enduml

@@ -46,6 +46,12 @@ public class CustomerGroupController {
         return ResponseEntity.ok(customerGroupService.retirerClient(groupId, customerId));
     }
 
+    @GetMapping("/{id}/members")
+    @PreAuthorize("hasAnyRole('VENTE','DSI','EXPLOIT')")   // EXPLOIT ajouté pour ExploitPromotion
+    public ResponseEntity<List<CustomerGroupDTO.MemberDTO>> getMembers(@PathVariable Long id) {
+        return ResponseEntity.ok(customerGroupService.getMembers(id));
+    }
+    
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VENTE','DSI')")
     public ResponseEntity<CustomerGroupDTO> getById(@PathVariable Long id) {

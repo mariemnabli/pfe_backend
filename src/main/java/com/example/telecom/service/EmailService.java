@@ -232,4 +232,34 @@ public class EmailService {
 
         envoyerEmail(destinataire, sujet, contenu);
     }
+
+    public void envoyerReponseContact(String destinataire, String nomContact,
+                                      String sujetContact, String messageContact,
+                                      String reponseDsi) {
+        String sujet = "Reponse a votre message de contact";
+        String contenu = """
+                <html>
+                <body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:30px;">
+                  <div style="max-width:600px;margin:auto;background:#fff;
+                              border-radius:8px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                    <h2 style="color:#1a73e8;">Reponse du service DSI</h2>
+                    <p>Bonjour <strong>%s</strong>,</p>
+                    <p>Nous avons traite votre message de contact.</p>
+                    <div style="background:#f8f9fa;border-left:4px solid #1a73e8;
+                                padding:15px;border-radius:4px;margin:20px 0;">
+                      <p style="margin:0 0 10px 0;"><strong>Sujet :</strong> %s</p>
+                      <p style="margin:0 0 10px 0;"><strong>Votre message :</strong> %s</p>
+                      <p style="margin:0;"><strong>Reponse DSI :</strong> %s</p>
+                    </div>
+                    <hr style="border:none;border-top:1px solid #eee;margin:30px 0;">
+                    <p style="color:#aaa;font-size:12px;text-align:center;">
+                      Portail Télécom — Ne pas répondre à cet email
+                    </p>
+                  </div>
+                </body>
+                </html>
+                """.formatted(nomContact, sujetContact, messageContact, reponseDsi);
+
+        envoyerEmail(destinataire, sujet, contenu);
+    }
 }

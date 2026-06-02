@@ -95,6 +95,14 @@ public class CustomerGroupService {
         return toDTO(getGroup(id), true);
     }
 
+    public List<CustomerGroupDTO.MemberDTO> getMembers(Long groupId) {
+        getGroup(groupId); // vérifie que le groupe existe
+        return customerGroupMemberRepository.findByCustomerGroupId(groupId).stream()
+                .filter(m -> m.getStatus() == CustomerGroupMember.MembershipStatus.ACTIVE)
+                .map(this::toMemberDTO)
+                .collect(Collectors.toList());
+    }
+
     public List<CustomerGroupDTO> getAll() {
         return customerGroupRepository.findAll().stream()
                 .map(group -> toDTO(group, false))

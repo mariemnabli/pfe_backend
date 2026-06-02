@@ -90,7 +90,7 @@ public class CustomerPromotionDateService {
                 String period = calculatePeriod(startDate, endDate);
 
                 // Déterminer le statut
-                String status = determineStatus(startDate, endDate, today);
+                String status = determineAssignmentStatus(assignment, startDate, endDate, today);
 
                 result.add(CustomerPromotionDateDTO.builder()
                         .customerId(client.getId())
@@ -341,6 +341,35 @@ public class CustomerPromotionDateService {
         } else {
             return "ACTIVE";
         }
+    }
+
+    private String determineAssignmentStatus(PromotionAssignment assignment,
+                                             LocalDate startDate, LocalDate endDate,
+                                             LocalDate today) {
+        // Priorité 1 : ValidationStatus explicite
+        if (assignment.getValidationStatus() != null) {
+            switch (assignment.getValidationStatus()) {
+                case VALIDATED:
+                    return "VALIDATED";
+                case REJECTED:
+                    return "REJECTED";
+                case PENDING:
+                    break; // continuer vers la logique de dates
+            }
+        }
+
+        // Priorité 2 : Statut assignment
+        if (assignment.getStatus() == PromotionAssignment.AssignmentStatus.SUSPENDED) {
+            return "SUSPENDED";
+        }
+
+        // Priorité 3 : Dates non définies
+        if (startDate == null || endDate == null) {
+            return "PENDING_DATES";
+        }
+
+        // Priorité 4 : Logique temporelle
+        return determineStatus(startDate, endDate, today);
     }
 
     private String formatPromotionValue(Promotion promotion) {

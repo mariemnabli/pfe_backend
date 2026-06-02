@@ -55,7 +55,6 @@ public class ServiceController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('METIER','VENTE','EXPLOIT')")
     public ResponseEntity<PaginatedResponse<ServiceDTO>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {

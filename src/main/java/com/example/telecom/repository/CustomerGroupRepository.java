@@ -9,6 +9,10 @@ import java.util.Optional;
 public interface CustomerGroupRepository extends JpaRepository<CustomerGroup, Long> {
     Optional<CustomerGroup> findByGroupCode(String groupCode);
 
+    boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
+
     @Query("SELECT MAX(g.id) FROM CustomerGroup g")
     Optional<Long> findMaxId();
 }

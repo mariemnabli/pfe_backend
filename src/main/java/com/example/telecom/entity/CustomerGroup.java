@@ -8,7 +8,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "customer_groups")
+@Table(
+        name = "customer_groups",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "name"),
+                @UniqueConstraint(columnNames = "group_code")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,7 +29,7 @@ public class CustomerGroup {
     @Column(name = "group_code", unique = true, updatable = false)
     private String groupCode;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
     @Enumerated(EnumType.STRING)

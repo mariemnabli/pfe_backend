@@ -24,6 +24,12 @@ public class CustomerGroupService {
     private final ClientRepository clientRepository;
 
     public CustomerGroupDTO creer(CustomerGroupDTO dto) {
+
+        // 1. Vérifier si le groupe existe déjà
+        if (customerGroupRepository.existsByName(dto.getName())) {
+            throw new RuntimeException("Le groupe existe déjà avec le nom: " + dto.getName());
+        }
+
         CustomerGroup group = CustomerGroup.builder()
                 .groupCode(genererGroupCode())
                 .name(dto.getName())
@@ -35,14 +41,21 @@ public class CustomerGroupService {
     }
 
     public CustomerGroupDTO modifier(Long id, CustomerGroupDTO dto) {
-        CustomerGroup group = getGroup(id);
+
+        CustomerGroup group = customerGroupRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Groupe introuvable"));
+
+        // Vérifier si un autre groupe possède déjà ce nom
+        if (customerGroupRepository.existsByNameAndIdNot(dto.getName(), id)) {
+            throw new RuntimeException(
+                    "Un groupe existe déjà avec ce nom : " + dto.getName()
+            );
+        }
+
         group.setName(dto.getName());
-        if (dto.getGroupType() != null) {
-            group.setGroupType(dto.getGroupType());
-        }
-        if (dto.getStatus() != null) {
-            group.setStatus(dto.getStatus());
-        }
+        group.setGroupType(dto.getGroupType());
+        group.setStatus(dto.getStatus());
+
         return toDTO(customerGroupRepository.save(group), true);
     }
 

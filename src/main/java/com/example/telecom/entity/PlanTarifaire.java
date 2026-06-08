@@ -5,7 +5,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "plans_tarifaires")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PlanTarifaire {
 
     @Id
@@ -15,4 +19,5 @@ public class PlanTarifaire {
     private String nom;
     private Double prixMensuel;
     private String description;
+    
 }

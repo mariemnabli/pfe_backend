@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -23,6 +24,7 @@ public class StatsController {
     private final OffreRepository              offreRepository;
     private final ServiceRepository            serviceRepository;
     private final PlanTarifaireRepository      planTarifaireRepository;
+    private final ReclamationRepository        reclamationRepository;
 
     // ── VENTE ─────────────────────────────────────────────────
     @GetMapping("/vente")
@@ -137,6 +139,14 @@ public class StatsController {
         long usersActifs    = userRepository.findAll().stream().filter(User::isEnabled).count();
         long usersInactifs  = totalUsers - usersActifs;
         long premiereConnexion = userRepository.findAll().stream().filter(u -> !u.isPremiereConnexion()).count();
+        long totalClients = clientRepository.count();
+        long totalContrats = contratRepository.count();
+        long totalReclamations = reclamationRepository.count();
+        long totalPromotions = promotionRepository.count();
+
+        List<Contrat> contrats = contratRepository.findAll();
+        List<Reclamation> reclamations = reclamationRepository.findAll();
+        List<Promotion> promotions = promotionRepository.findAll();
 
         // Répartition par rôle
         Map<String,Long> parRole = new LinkedHashMap<>();
@@ -152,14 +162,74 @@ public class StatsController {
                 repartitionRoles.add(Map.of("role", role, "count", count))
         );
 
+        List<Map<String,Object>> repartitionContrats = new ArrayList<>();
+        for (ContractType type : ContractType.values()) {
+            long count = contrats.stream()
+                    .filter(contrat -> contrat.getContractType() == type)
+                    .count();
+            repartitionContrats.add(Map.of("contractType", type.name(), "count", count));
+        }
+
+        List<Map<String,Object>> repartitionContratsParStatut = new ArrayList<>();
+        for (Contrat.StatutContrat statut : Contrat.StatutContrat.values()) {
+            long count = contrats.stream()
+                    .filter(contrat -> contrat.getStatut() == statut)
+                    .count();
+            repartitionContratsParStatut.add(Map.of("statut", statut.name(), "count", count));
+        }
+
+        List<Map<String,Object>> repartitionReclamations = new ArrayList<>();
+        for (Reclamation.StatutReclamation statut : Reclamation.StatutReclamation.values()) {
+            long count = reclamations.stream()
+                    .filter(reclamation -> reclamation.getStatut() == statut)
+                    .count();
+            repartitionReclamations.add(Map.of("statut", statut.name(), "count", count));
+        }
+
+        List<Map<String,Object>> repartitionPromotions = new ArrayList<>();
+        for (Promotion.StatutPromotion statut : Promotion.StatutPromotion.values()) {
+            long count = promotions.stream()
+                    .filter(promotion -> promotion.getStatut() == statut)
+                    .count();
+            repartitionPromotions.add(Map.of("statut", statut.name(), "count", count));
+        }
+
+        Map<LocalDate, Long> promotionsParDate = new TreeMap<>();
+        for (Promotion promotion : promotions) {
+            if (promotion.getDateDebut() != null) {
+                LocalDate dateDebut = promotion.getDateDebut();
+                promotionsParDate.put(dateDebut, promotionsParDate.getOrDefault(dateDebut, 0L) + 1);
+            }
+        }
+
+        List<Map<String,Object>> promotionsParPeriode = new ArrayList<>();
+        promotionsParDate.forEach((periode, count) ->
+                promotionsParPeriode.add(Map.of("periode", periode, "count", count))
+        );
+
+        List<Map<String,Object>> promotionsParNombre = new ArrayList<>();
+        promotions.stream()
+                .sorted(Comparator.comparing(Promotion::getNomPromotion, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .forEach(promotion -> promotionsParNombre.add(Map.of(
+                        "promotion", promotion.getNomPromotion() != null ? promotion.getNomPromotion() : "Sans nom",
+                        "count", 1L
+                )));
+
         stats.put("totalUsers",          totalUsers);
         stats.put("usersActifs",         usersActifs);
         stats.put("usersInactifs",       usersInactifs);
         stats.put("enAttenteConnexion",  premiereConnexion);
         stats.put("repartitionRoles",    repartitionRoles);
-        stats.put("totalClients",        clientRepository.count());
-        stats.put("totalContrats",       contratRepository.count());
-        stats.put("totalPromotions",     promotionRepository.count());
+        stats.put("totalClients",        totalClients);
+        stats.put("totalContrats",       totalContrats);
+        stats.put("totalReclamations",   totalReclamations);
+        stats.put("totalPromotions",     totalPromotions);
+        stats.put("repartitionContrats", repartitionContrats);
+        stats.put("repartitionContratsParStatut", repartitionContratsParStatut);
+        stats.put("repartitionReclamations", repartitionReclamations);
+        stats.put("repartitionPromotions", repartitionPromotions);
+        stats.put("promotionsParPeriode", promotionsParPeriode);
+        stats.put("promotionsParNombre", promotionsParNombre);
 
         return ResponseEntity.ok(stats);
     }

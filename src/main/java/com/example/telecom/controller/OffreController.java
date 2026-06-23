@@ -50,6 +50,14 @@ public class OffreController {
         return ResponseEntity.ok(offreService.modifier(id, dto));
     }
 
+    // Supprimer une offre
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('METIER')")
+    public ResponseEntity<Void> supprimer(@PathVariable Long id) {
+        offreService.supprimer(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // Ajouter des services à une offre existante
     @PostMapping("/{id}/services")
     @PreAuthorize("hasRole('METIER')")

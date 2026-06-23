@@ -10,6 +10,7 @@ import com.example.telecom.repository.OffreRepository;
 import com.example.telecom.repository.PlanTarifaireRepository;
 import com.example.telecom.repository.ServiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -68,8 +69,20 @@ public class OffreService {
         return buildPaginatedResponse(result);
     }
 
+    @Transactional
     public void supprimer(Long id) {
-        offreRepository.deleteById(id);
+        Offre offre = offreRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Offre introuvable."));
+        try {
+            offre.getServices().clear();
+            offreRepository.delete(offre);
+            offreRepository.flush(); // ← force le flush immédiat → déclenche la FK exception dans le try
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException(
+                    "Cette offre ne peut pas être supprimée car elle est utilisée par un ou plusieurs contrats. " +
+                            "Veuillez d'abord supprimer ou modifier les contrats associés."
+            );
+        }
     }
 
     // ── Ajouter des services à une offre existante ─────────────
@@ -89,6 +102,7 @@ public class OffreService {
 
         return toDTO(offreRepository.save(offre));
     }
+
     // ── Retirer un service d'une offre ─────────────────────────
     public OffreDTO retirerService(Long offreId, Long serviceId) {
         Offre offre = offreRepository.findById(offreId)

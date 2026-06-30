@@ -79,6 +79,32 @@ public class AuthService {
         return new AuthResponse(accessToken, refreshToken, user.getEmail(), user.getRole());
     }
 
+    // ─── CHANGE PASSWORD ─────────────────────────────────────
+// ─── CHANGE PASSWORD ─────────────────────────────────────
+    public void changePassword(ChangePasswordRequest request) {
+        User user = userRepository.findUserByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("Ancien mot de passe incorrect");
+        }
+
+        if (request.getNewPassword() == null || request.getNewPassword().isBlank()) {
+            throw new RuntimeException("Le nouveau mot de passe est requis");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            throw new RuntimeException("La confirmation ne correspond pas au nouveau mot de passe");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new RuntimeException("Le nouveau mot de passe doit être différent de l'ancien");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
     // ─── FORGOT PASSWORD ─────────────────────────────────────
     public void forgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findUserByEmail(request.getEmail())

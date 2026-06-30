@@ -7,6 +7,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Service
 @RequiredArgsConstructor
 public class EmailService {
@@ -68,9 +71,13 @@ public class EmailService {
         envoyerEmail(destinataire, sujet, contenu);
     }
 
-    // ── Notification première connexion ───────────────────────
+    // ─── Notification première connexion ───────────────────────
     public void envoyerNotificationPremiereConnexion(String destinataire, String username) {
-        String sujet = "Première connexion détectée — Portail Télécom";
+        String sujet = "Première connexion détectée – Portail Télécom";
+
+        String lienChangePassword = "http://localhost:5173/change-password?email="
+                + URLEncoder.encode(destinataire, StandardCharsets.UTF_8);
+
         String contenu = """
                 <html>
                 <body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:30px;">
@@ -83,12 +90,12 @@ public class EmailService {
                     <div style="background:#e8f5e9;border-left:4px solid #2e7d32;
                                 padding:15px;border-radius:4px;margin:20px 0;">
                       <p style="margin:0;">
-                        🔐 Pour votre sécurité, nous vous recommandons de
+                        🔒 Pour votre sécurité, nous vous recommandons de
                         <strong>changer votre mot de passe</strong> dès maintenant.
                       </p>
                     </div>
                     <div style="text-align:center;margin:30px 0;">
-                      <a href="http://localhost:5173/change-password"
+                      <a href="%s"
                          style="background:#2e7d32;color:white;padding:14px 28px;
                                 text-decoration:none;border-radius:5px;font-size:16px;">
                         Changer mon mot de passe
@@ -99,12 +106,12 @@ public class EmailService {
                     </p>
                     <hr style="border:none;border-top:1px solid #eee;margin:30px 0;">
                     <p style="color:#aaa;font-size:12px;text-align:center;">
-                      Portail Télécom — Ne pas répondre à cet email
+                      Portail Télécom – Ne pas répondre à cet email
                     </p>
                   </div>
                 </body>
                 </html>
-                """.formatted(username);
+                """.formatted(username, lienChangePassword);
 
         envoyerEmail(destinataire, sujet, contenu);
     }
